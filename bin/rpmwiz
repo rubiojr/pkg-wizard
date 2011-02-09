@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+require 'pp'
+
+$: << File.join(File.dirname(__FILE__), "/../lib/")
+
+require 'rpm-wizard'
+require 'rpm-wizard/logger'
+include RPMWizard
+
+log = RPMWizard::Logger.instance
+
+DEFAULT_SUBCOMMAND_FILES = Dir[File.expand_path(File.join(File.dirname(__FILE__), '/../lib/rpm-wizard/commands/', '*.rb'))]
+DEFAULT_SUBCOMMAND_REGISTRY = 
+
+DEFAULT_SUBCOMMAND_FILES.each do |sc|
+  require sc
+end
+
+Command.registry
+#begin 
+  Command.new.run(ARGV)
+#rescue Exception => e
+#  puts "\n#{e.message}\n\n" if not e.is_a?(SystemExit)
+#end
