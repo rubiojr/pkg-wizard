@@ -23,6 +23,7 @@ Jeweler::Tasks.new do |gem|
   gem.add_runtime_dependency 'SystemTimer'
   gem.add_runtime_dependency 'resque'
   gem.add_runtime_dependency 'git'
+  gem.add_runtime_dependency 'sinatra'
   #  gem.add_development_dependency 'rspec', '> 1.2.3'
 end
 Jeweler::RubygemsDotOrgTasks.new
