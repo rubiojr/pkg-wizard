@@ -17,7 +17,7 @@ Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/rubiojr/rpm-wizard"
   gem.license = "MIT"
   gem.summary = %Q{RPM Wizards Tools}
-  gem.description = %Q{Tools to manage,create and build RPM packages}
+  gem.description = %Q{Tools to manage and build rpms}
   gem.email = "rubiojr@frameos.org"
   gem.authors = ["Sergio Rubio"]
   gem.add_runtime_dependency 'SystemTimer'
