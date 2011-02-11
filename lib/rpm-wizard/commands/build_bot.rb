@@ -8,10 +8,16 @@ require 'fileutils'
 require 'uri'
 require 'sinatra/base'
 require 'rufus/scheduler'
+require 'term/ansicolor'
 require 'pp'
+
+class String
+  include Term::ANSIColor
+end
 
 module RPMWizard  
   class BuildBot < Command
+
     registry << { :name => 'build-bot', :klass => self }
 
     option :help,
@@ -37,9 +43,9 @@ module RPMWizard
           "Missing pkg parameter.\n"
         else
           incoming_file = "incoming/#{pkg[:filename]}"
-          Logger.instance.info "Incoming file #{pkg[:filename]}"
+          $stdout.puts "Incoming file".ljust(40).bold.yellow + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
-          Logger.instance.info "File #{pkg[:filename]} saved."
+          $stdout.puts "File saved".ljust(40).green.bold + "#{pkg[:filename]} saved."
         end
       end
 
@@ -53,15 +59,17 @@ module RPMWizard
       scheduler.every '2s', :blocking => true do
         queue = Dir['incoming/*.src.rpm'].sort_by {|filename| File.mtime(filename) }
         if not queue.empty?
+          job_time = Time.now.strftime '%Y%m%d_%H%M%S'
+          $stdout.puts "Job accepted [#{queue.size} Queued]".ljust(40).blue.bold + job_time
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           qfile = File.join(job_dir, File.basename(queue.first))
           FileUtils.mv queue.first, qfile
-          Logger.instance.info "Building pkg #{qfile}"
+          $stdout.puts "Building pkg [#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
           RPMWizard::Mock.srpm :srpm => qfile, :profile => 'abiquo-1.7', :resultdir => result_dir
           FileUtils.mv job_dir, 'output/'
-          Logger.instance.info "Finished building #{qfile}"
+          $stdout.puts "Finished building [#{job_time}]".ljust(40).green.bold + "#{File.basename(qfile)}"
         end
       end
       Webapp.run!
