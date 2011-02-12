@@ -2,7 +2,7 @@ require 'rubygems'
 require 'fileutils'
 require 'mixlib/cli'
 
-module RPMWizard
+module PKGWizard
   
   class Distribution
     def self.detect

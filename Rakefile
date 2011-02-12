@@ -12,12 +12,12 @@ require 'rake'
 require 'jeweler'
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "rpm-wizard"
+  gem.name = "pkg-wizard"
   gem.version = File.read 'VERSION'
-  gem.homepage = "http://github.com/rubiojr/rpm-wizard"
+  gem.homepage = "http://github.com/rubiojr/pkg-wizard"
   gem.license = "MIT"
-  gem.summary = %Q{RPM Wizards Tools}
-  gem.description = %Q{Tools to manage,create and build RPM packages}
+  gem.summary = %Q{Package Wizards Tools}
+  gem.description = %Q{Tools to manage,create and build distribution packages}
   gem.email = "rubiojr@frameos.org"
   gem.authors = ["Sergio Rubio"]
   gem.add_runtime_dependency 'SystemTimer'
@@ -36,7 +36,7 @@ Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""
 
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title = "rpm-wizard #{version}"
+  rdoc.title = "pkg-wizard #{version}"
   rdoc.rdoc_files.include('README*')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end

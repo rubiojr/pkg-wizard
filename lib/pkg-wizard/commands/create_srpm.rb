@@ -1,12 +1,12 @@
-require 'rpm-wizard/command'
-require 'rpm-wizard/rpm'
-require 'rpm-wizard/logger'
-require 'rpm-wizard/git'
+require 'pkg-wizard/command'
+require 'pkg-wizard/rpm'
+require 'pkg-wizard/logger'
+require 'pkg-wizard/git'
 require 'tmpdir'
 require 'fileutils'
 require 'uri'
 
-module RPMWizard  
+module PKGWizard  
   class CreateSrpm < Command
     registry << { :name => 'create-srpm', :klass => self }
 

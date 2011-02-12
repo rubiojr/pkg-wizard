@@ -1,8 +1,8 @@
-require 'rpm-wizard/command'
-require 'rpm-wizard/rpm'
-require 'rpm-wizard/logger'
-require 'rpm-wizard/git'
-require 'rpm-wizard/mock'
+require 'pkg-wizard/command'
+require 'pkg-wizard/rpm'
+require 'pkg-wizard/logger'
+require 'pkg-wizard/git'
+require 'pkg-wizard/mock'
 require 'tmpdir'
 require 'fileutils'
 require 'uri'
@@ -15,7 +15,7 @@ class String
   include Term::ANSIColor
 end
 
-module RPMWizard  
+module PKGWizard  
   class BuildBot < Command
 
     registry << { :name => 'build-bot', :klass => self }
@@ -67,7 +67,7 @@ module RPMWizard
           qfile = File.join(job_dir, File.basename(queue.first))
           FileUtils.mv queue.first, qfile
           $stdout.puts "Building pkg [#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
-          RPMWizard::Mock.srpm :srpm => qfile, :profile => 'abiquo-1.7', :resultdir => result_dir
+          PKGWizard::Mock.srpm :srpm => qfile, :profile => 'abiquo-1.7', :resultdir => result_dir
           FileUtils.mv job_dir, 'output/'
           $stdout.puts "Finished building [#{job_time}]".ljust(40).green.bold + "#{File.basename(qfile)}"
         end

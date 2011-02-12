@@ -1,6 +1,6 @@
 require 'git'
 
-module RPMWizard
+module PKGWizard
 
   class GitRPM
     def self.fetch(giturl, path)

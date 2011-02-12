@@ -5,11 +5,11 @@ $: << File.join(File.dirname(__FILE__), "/../lib/")
 
 require 'rpm-wizard'
 require 'rpm-wizard/logger'
-include RPMWizard
+include PKGWizard
 
-log = RPMWizard::Logger.instance
+log = PKGWizard::Logger.instance
 
-DEFAULT_SUBCOMMAND_FILES = Dir[File.expand_path(File.join(File.dirname(__FILE__), '/../lib/rpm-wizard/commands/', '*.rb'))]
+DEFAULT_SUBCOMMAND_FILES = Dir[File.expand_path(File.join(File.dirname(__FILE__), '/../lib/pkg-wizard/commands/', '*.rb'))]
 DEFAULT_SUBCOMMAND_REGISTRY = 
 
 DEFAULT_SUBCOMMAND_FILES.each do |sc|

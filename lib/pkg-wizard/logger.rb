@@ -2,7 +2,7 @@ require 'logger'
 require 'delegate'
 require 'singleton'
 
-module RPMWizard
+module PKGWizard
   OriginalLogger = Logger
   class Logger < SimpleDelegator
     include Singleton

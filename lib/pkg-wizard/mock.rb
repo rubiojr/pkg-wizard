@@ -1,4 +1,4 @@
-module RPMWizard 
+module PKGWizard 
   class Mock
 
     #
