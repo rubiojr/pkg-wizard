@@ -3,8 +3,8 @@ require 'pp'
 
 $: << File.join(File.dirname(__FILE__), "/../lib/")
 
-require 'rpm-wizard'
-require 'rpm-wizard/logger'
+require 'pkg-wizard'
+require 'pkg-wizard/logger'
 include PKGWizard
 
 log = PKGWizard::Logger.instance

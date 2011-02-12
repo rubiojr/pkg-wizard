@@ -1,4 +1,4 @@
-module RPMWizard
+module PKGWizard
   class NoSpecFound < Exception; end
   class RPMBuildError < Exception; end
 
