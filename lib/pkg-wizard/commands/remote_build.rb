@@ -105,7 +105,9 @@ module PKGWizard
       remote_pkg = uri.path.split('/').last
       d = StreamingDownloader.new
       f = "#{tmpdir}/#{remote_pkg}"
-      d.download!(url, File.new(f, 'w'))
+      tmpfile = File.new(f, 'w')
+      d.download!(url, tmpfile)
+      tmpfile.close
       f
     end
 
