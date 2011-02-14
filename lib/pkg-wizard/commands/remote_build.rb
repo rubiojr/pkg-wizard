@@ -1,5 +1,6 @@
 require 'pkg-wizard/command'
 require 'pkg-wizard/logger'
+require 'pkg-wizard/streaming_downloader'
 require 'tmpdir'
 require 'fileutils'
 require 'uri'
@@ -27,13 +28,31 @@ module PKGWizard
 
     option :buildbot,
       :short => '-b URL',
+      :description => 'rpmwiz build-bot URL',
       :long => '--buildbot URL'
+
+    option :tmpdir,
+      :short => '-t TEMP',
+      :long => '--tmpdir TEMP',
+      :description => 'Directory for downloaded files to be put',
+      :default => '/tmp'
     
     def self.perform
       cli = RemoteBuild.new
-      cli.parse_options
+      pkgs = cli.parse_options
       bbot_url = cli.config[:buildbot]
-      pkgs = ARGV.find_all { |f| File.exist?(f) and f =~ /\.src\.rpm/ }
+      downloaded_pkgs = []
+      pkgs.reject! do |p|
+        if p =~ /http:\/\//
+          pkg = URI.parse(p).path.split("/").last
+          $stdout.puts "Downloading #{pkg}..."
+          downloaded_pkgs << download_from_url(p,cli.config[:tmpdir]) 
+          true
+        else
+          false
+        end
+      end
+      pkgs += downloaded_pkgs
 
       # We need this to show the progress percentage 
       if pkgs.empty?
@@ -61,8 +80,18 @@ module PKGWizard
             print "#{line_reset}Uploading:".ljust(40) + "#{(100*count)/fsize}% " 
           end
         end
-        puts "#{line_reset}#{pkg.gsub(/-((\d|\.)*)-((\d|\.\w|_)*)\.src\.rpm/,'')}:".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
+        #puts "#{line_reset}Uploading: #{File.basename(pkg).gsub(/-((\d|\.)*)-(.*)\.src\.rpm/,'')} ".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
+        puts "#{line_reset}Uploading: #{File.basename(pkg)} ".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
       end
+    end
+
+    def self.download_from_url(url, tmpdir = '/tmp')
+      uri = URI.parse(url)
+      remote_pkg = uri.path.split('/').last
+      d = StreamingDownloader.new
+      f = "#{tmpdir}/#{remote_pkg}"
+      d.download!(url, File.new(f, 'w'))
+      f
     end
 
   end
