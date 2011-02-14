@@ -68,7 +68,7 @@ module PKGWizard
         # FIXME
         # This is dangerous but SRPM.create does not return
         # the full filename
-        pkg = Dir[output + '*.src.rpm'].first
+        pkg = output
         basename = File.basename(pkg)
         Dir.chdir pwd
         FileUtils.cp pkg, resultdir
@@ -78,7 +78,7 @@ module PKGWizard
         # FIXME
         # This is dangerous but SRPM.create does not return
         # the full filename
-        pkg = Dir[output + '*.src.rpm'].first
+        pkg = output
         basename = File.basename(pkg)
         FileUtils.cp pkg, resultdir
         $stdout.puts "SRPM created: #{resultdir}/#{basename}"

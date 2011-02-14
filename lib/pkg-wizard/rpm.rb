@@ -50,8 +50,14 @@ module PKGWizard
         macros << ' --define "_source_filedigest_algorithm 0" --define "_binary_filedigest_algorithm 0"'
       end
       output = `rpmbuild --nodeps -bs *.spec #{macros} 2>&1`
+      resulting_pkg = ''
+      output.each_line do |l|
+        if l =~ /Wrote:/
+          resulting_pkg = l.gsub('Wrote: ', '').strip.chomp
+        end
+      end
       raise RPMBuildError.new(output) if $? != 0
-      "#{rpmbuild_dir}/SRPMS/#{pkg_full_name}"
+      resulting_pkg
     end
   end
 end

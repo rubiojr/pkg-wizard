@@ -39,8 +39,14 @@ module PKGWizard
     
     def self.perform
       cli = RemoteBuild.new
+      cli.banner = "\nUsage: rpmwiz remote-build (options)\n\n"
       pkgs = cli.parse_options
       bbot_url = cli.config[:buildbot]
+      if bbot_url.nil?
+        $stderr.puts "\n--buildbot is required.\n"
+        puts cli.opt_parser.help
+        exit 1
+      end
       downloaded_pkgs = []
       pkgs.reject! do |p|
         if p =~ /http:\/\//
@@ -54,14 +60,23 @@ module PKGWizard
       end
       pkgs += downloaded_pkgs
 
+      #
+      # If no packages are specified, we assume we need to create
+      # and SRPM from current dir
+      #
+      created_srpms = []
+      if pkgs.empty? and Dir["*.spec"].size > 0
+        spec = Dir["*.spec"].first
+        $stdout.puts "Creating SRPM for #{spec}..."
+        srpm = SRPM.create
+        created_srpms << srpm
+      end
+      pkgs += created_srpms
+
       # We need this to show the progress percentage 
       if pkgs.empty?
         $stderr.puts "\nNo packages found.\n\n"
         puts cli.opt_parser.help
-        exit 1
-      end
-      if bbot_url.nil?
-        $stderr.puts "\n --buildbot is required.\n\n"
         exit 1
       end
       pkgs.each do |pkg|
