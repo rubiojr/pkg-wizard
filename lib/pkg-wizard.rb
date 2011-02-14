@@ -3,6 +3,8 @@ require 'fileutils'
 require 'mixlib/cli'
 
 module PKGWizard
+
+  VERSION = '0.1.3'
   
   class Distribution
     def self.detect

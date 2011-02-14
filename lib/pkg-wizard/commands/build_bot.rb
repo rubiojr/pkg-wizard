@@ -66,6 +66,7 @@ module PKGWizard
       Dir.mkdir 'incoming' if not File.exist?('incoming')
       Dir.mkdir 'output' if not File.exist?('output')
       Dir.mkdir 'workspace' if not File.exist?('workspace')
+      Dir.mkdir 'archive' if not File.exist?('archive')
       scheduler = Rufus::Scheduler.start_new
       scheduler.every '2s', :blocking => true do
         meta[:start_time] = Time.now
@@ -93,7 +94,8 @@ module PKGWizard
               f.puts "#{e.message}"
             end
           ensure
-            meta[:endtime] = Time.now
+            meta[:end_time] = Time.now
+            meta[:build_time] = meta[:end_time] - meta[:start_time]
             File.open(job_dir + '/meta.yml', 'w') do |f|
               f.puts meta.to_yaml
             end

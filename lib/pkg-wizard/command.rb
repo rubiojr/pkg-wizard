@@ -17,6 +17,10 @@ module PKGWizard
 
     def run(argv)
       @@argv = argv
+      if @@argv.include?('--version') or @@argv.include?('-v')
+        puts "PKG Wizard Version #{PKGWizard::VERSION}" 
+        exit 0
+      end
       cmd = argv.shift
       found = false
       @@registry.each do |c|
