@@ -85,7 +85,6 @@ module PKGWizard
           begin
             PKGWizard::Mock.srpm :srpm => qfile, :profile => mock_profile, :resultdir => result_dir
             meta[:status] = 'ok'
-            $stdout.puts "Finished building [#{job_time}]".ljust(40).green.bold + "#{File.basename(qfile)}"
           rescue Exception => e
             meta[:status] = 'error'
             $stdout.puts "Job failed [#{job_time}]".ljust(40).red.bold 
@@ -100,6 +99,7 @@ module PKGWizard
               f.puts meta.to_yaml
             end
             FileUtils.mv job_dir, 'output/'
+            $stdout.puts "Built [#{job_time}, #{meta[:build_time].to_i}s]".ljust(40).green.bold + "#{File.basename(qfile)}"
           end
         end
       end
