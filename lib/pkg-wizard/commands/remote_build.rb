@@ -30,6 +30,12 @@ module PKGWizard
       :short => '-b URL',
       :description => 'rpmwiz build-bot URL',
       :long => '--buildbot URL'
+    
+    option :buildbot_port,
+      :short => '-p PORT',
+      :description => 'rpmwiz build-bot PORT (default 4567)',
+      :long => '--buildbot-port PORT',
+      :default => 4567
 
     option :tmpdir,
       :short => '-t TEMP',
@@ -41,7 +47,9 @@ module PKGWizard
       cli = RemoteBuild.new
       cli.banner = "\nUsage: rpmwiz remote-build (options)\n\n"
       pkgs = cli.parse_options
-      bbot_url = cli.config[:buildbot]
+      bbot_host = cli.config[:buildbot]
+      bbot_port = cli.config[:buildbot_port]
+      bbot_url = "http://#{bbot_host}:#{bbot_port}"
       if bbot_url.nil?
         $stderr.puts "\n--buildbot is required.\n"
         puts cli.opt_parser.help
@@ -51,7 +59,7 @@ module PKGWizard
       pkgs.reject! do |p|
         if p =~ /http:\/\//
           pkg = URI.parse(p).path.split("/").last
-          $stdout.puts "Downloading #{pkg}..."
+          $stdout.puts "Downloading: #{pkg}"
           downloaded_pkgs << download_from_url(p,cli.config[:tmpdir]) 
           true
         else
@@ -83,6 +91,7 @@ module PKGWizard
         fo = File.new(pkg)
         fsize = File.size(pkg)
         count = 0
+        pcount = 0
         $stdout.sync = true
         line_reset = "\r\e[0K" 
         res = StreamingUploader.post(
@@ -92,11 +101,11 @@ module PKGWizard
           count += size
           per = (100*count)/fsize 
           if per %10 == 0
-            print "#{line_reset}Uploading:".ljust(40) + "#{(100*count)/fsize}% " 
+            pcount += 10
+            print "#{line_reset}Uploading:".ljust(40) + "#{pcount}%" 
           end
         end
-        #puts "#{line_reset}Uploading: #{File.basename(pkg).gsub(/-((\d|\.)*)-(.*)\.src\.rpm/,'')} ".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
-        puts "#{line_reset}Uploading: #{File.basename(pkg)} ".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
+        puts "#{line_reset}Uploading: #{File.basename(pkg)} ".ljust(40) + "[#{fsize}] [COMPLETE]"
       end
     end
 
