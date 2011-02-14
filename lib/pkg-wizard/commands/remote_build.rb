@@ -33,11 +33,11 @@ module PKGWizard
       cli = RemoteBuild.new
       cli.parse_options
       bbot_url = cli.config[:buildbot]
-      pkg = ARGV.last
+      pkgs = ARGV.find_all { |f| File.exist?(f) and f =~ /\.src\.rpm/ }
 
       # We need this to show the progress percentage 
-      if pkg.nil? or not File.exist?(pkg)
-        $stderr.puts "\nInvalid package argument. Make sure the specified file exists.\n\n"
+      if pkgs.empty?
+        $stderr.puts "\nNo packages found.\n\n"
         puts cli.opt_parser.help
         exit 1
       end
@@ -45,22 +45,24 @@ module PKGWizard
         $stderr.puts "\n --buildbot is required.\n\n"
         exit 1
       end
-      fo = File.new(pkg)
-      fsize = File.size(pkg)
-      count = 0
-      $stdout.sync = true
-      line_reset = "\r\e[0K" 
-      res = StreamingUploader.post(
-        bbot_url + '/build/',
-        { 'pkg' => fo }
-      ) do |size|
-        count += size
-        per = (100*count)/fsize 
-        if per %10 == 0
-          print "#{line_reset}Uploading: #{(100*count)/fsize}% " 
+      pkgs.each do |pkg|
+        fo = File.new(pkg)
+        fsize = File.size(pkg)
+        count = 0
+        $stdout.sync = true
+        line_reset = "\r\e[0K" 
+        res = StreamingUploader.post(
+          bbot_url + '/build/',
+          { 'pkg' => fo }
+        ) do |size|
+          count += size
+          per = (100*count)/fsize 
+          if per %10 == 0
+            print "#{line_reset}Uploading:".ljust(40) + "#{(100*count)/fsize}% " 
+          end
         end
+        puts "#{line_reset}#{pkg.gsub(/-((\d|\.)*)-((\d|\.\w|_)*)\.src\.rpm/,'')}:".ljust(40) + "#{(100*count)/fsize}% [COMPLETE]"
       end
-      puts "#{line_reset}Progress: #{(100*count)/fsize}% [COMPLETE]"
     end
 
   end
