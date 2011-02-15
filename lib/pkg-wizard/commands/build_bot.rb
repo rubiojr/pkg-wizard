@@ -49,6 +49,72 @@ module PKGWizard
         end
       end
 
+      # list failed pkgs
+      get '/job/failed' do
+        max = params[:max] || 10
+        jobs = Dir["failed/job_*"].sort { |a,b| a <=> b }
+        max = max.to_i
+        if jobs.size > max.to_i
+          jobs[- max..-1].to_yaml
+        else
+          jobs.to_yaml
+        end
+      end
+      
+      get '/job/stats' do
+        fjobs = Dir["failed/job*"].size
+        sjobs = Dir["output/job*"].size
+        total_jobs = fjobs + sjobs
+        { 
+          :failed_jobs => fjobs,
+          :successful_jobs => sjobs,
+          :total_jobs => total_jobs
+        }.to_yaml
+      end
+
+      # list failed pkgs
+      get '/job/successful' do
+        max = params[:max] || 10
+        jobs = Dir["output/job_*"].sort { |a,b| a <=> b }
+        max = max.to_i
+        if jobs.size > max.to_i
+          jobs[- max..-1].to_yaml
+        else
+          jobs.to_yaml
+        end
+      end
+
+      get '/job/:name' do
+        jname = params[:name]
+        jobs = Dir['output/job_*'] + Dir['failed/job_*']
+        found = false
+        meta = ''
+        if jname == 'all'
+          found = true
+          metas = []
+          jobs.each do |j|
+            mfile = j + '/meta.yml'
+            if File.exist?(mfile)
+              metas << YAML.load_file(mfile)
+            else
+              $stderr.puts "[WARNING] Meta file #{mfile} not found"
+            end
+          end
+          meta = metas.to_yaml
+        else
+          jobs.each do |j|
+            if File.basename(j) == jname
+              found = true
+              puts j + '/meta.yml'
+              meta = File.read(j + '/meta.yml')
+              break
+            end
+          end
+        end
+        status 404 if not found
+        meta
+      end
+
     end
     
     def self.perform
