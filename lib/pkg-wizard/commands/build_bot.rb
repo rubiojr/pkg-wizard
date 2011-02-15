@@ -43,9 +43,9 @@ module PKGWizard
           "Missing pkg parameter.\n"
         else
           incoming_file = "incoming/#{pkg[:filename]}"
-          $stdout.puts "Incoming file".ljust(40).bold.yellow + "#{pkg[:filename]}"
+          $stdout.puts "Incoming file".ljust(40) + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
-          $stdout.puts "File saved".ljust(40).green.bold + "#{pkg[:filename]}"
+          $stdout.puts "File saved".ljust(40) + "#{pkg[:filename]}"
         end
       end
 
@@ -67,39 +67,45 @@ module PKGWizard
       Dir.mkdir 'output' if not File.exist?('output')
       Dir.mkdir 'workspace' if not File.exist?('workspace')
       Dir.mkdir 'archive' if not File.exist?('archive')
+      Dir.mkdir 'failed' if not File.exist?('failed')
       scheduler = Rufus::Scheduler.start_new
       scheduler.every '2s', :blocking => true do
         meta[:start_time] = Time.now
         queue = Dir['incoming/*.src.rpm'].sort_by {|filename| File.mtime(filename) }
         if not queue.empty?
           job_time = Time.now.strftime '%Y%m%d_%H%M%S'
-          $stdout.puts "Job accepted [#{queue.size} Queued]".ljust(40).blue.bold + job_time
+          $stdout.puts "Job accepted [#{queue.size} Queued]".ljust(40) + "job_" + job_time
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           meta[:source] = File.basename(queue.first)
           qfile = File.join(job_dir, File.basename(queue.first))
           FileUtils.mv queue.first, qfile
-          $stdout.puts "Building pkg [#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
+          $stdout.puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
 
+          rdir = nil
           begin
             PKGWizard::Mock.srpm :srpm => qfile, :profile => mock_profile, :resultdir => result_dir
             meta[:status] = 'ok'
+            meta[:end_time] = Time.now
+            meta[:build_time] = meta[:end_time] - meta[:start_time]
+            $stdout.puts "Build OK [job_#{job_time}] #{meta[:build_time].to_i}s ".ljust(40).green.bold + "#{File.basename(qfile)}"
           rescue Exception => e
             meta[:status] = 'error'
-            $stdout.puts "Job failed [#{job_time}]".ljust(40).red.bold 
+            $stdout.puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold 
             File.open(job_dir + '/buildbot.log', 'w') do |f|
               f.puts "#{e.backtrace.join("\n")}"
               f.puts "#{e.message}"
             end
           ensure
-            meta[:end_time] = Time.now
-            meta[:build_time] = meta[:end_time] - meta[:start_time]
             File.open(job_dir + '/meta.yml', 'w') do |f|
               f.puts meta.to_yaml
             end
-            FileUtils.mv job_dir, 'output/'
-            $stdout.puts "Built [#{job_time}, #{meta[:build_time].to_i}s]".ljust(40).green.bold + "#{File.basename(qfile)}"
+            if meta[:status] == 'error'  
+              FileUtils.mv job_dir, 'failed/'
+            else
+              FileUtils.mv job_dir, 'output/'
+            end
           end
         end
       end
