@@ -92,7 +92,7 @@ module PKGWizard
             $stdout.puts "Build OK [job_#{job_time}] #{meta[:build_time].to_i}s ".ljust(40).green.bold + "#{File.basename(qfile)}"
           rescue Exception => e
             meta[:status] = 'error'
-            $stdout.puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold 
+            $stdout.puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold  + "#{File.basename(qfile)}"
             File.open(job_dir + '/buildbot.log', 'w') do |f|
               f.puts "#{e.backtrace.join("\n")}"
               f.puts "#{e.message}"
