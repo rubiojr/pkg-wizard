@@ -91,7 +91,6 @@ module PKGWizard
         fo = File.new(pkg)
         fsize = File.size(pkg)
         count = 0
-        pcount = 0
         $stdout.sync = true
         line_reset = "\r\e[0K" 
         res = StreamingUploader.post(
@@ -101,8 +100,7 @@ module PKGWizard
           count += size
           per = (100*count)/fsize 
           if per %10 == 0
-            pcount += 10
-            print "#{line_reset}Uploading:".ljust(40) + "#{pcount}%" 
+            print "#{line_reset}Uploading:".ljust(40) + "[#{count}/#{fsize}]" 
           end
         end
         puts "#{line_reset}Uploading: #{File.basename(pkg)} ".ljust(40) + "[#{fsize}] [COMPLETE]"
