@@ -73,13 +73,13 @@ module PKGWizard
         meta[:start_time] = Time.now
         queue = Dir['incoming/*.src.rpm'].sort_by {|filename| File.mtime(filename) }
         if not queue.empty?
-          job_time = Time.now.strftime '%Y%m%d_%H%M%S'
-          $stdout.puts "Job accepted [#{queue.size} Queued]".ljust(40) + "job_" + job_time
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
+          qfile = File.join(job_dir, File.basename(queue.first))
+          job_time = Time.now.strftime '%Y%m%d_%H%M%S'
+          $stdout.puts "Job accepted [job_#{job_time}]".ljust(40) + File.basename(qfile)
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           meta[:source] = File.basename(queue.first)
-          qfile = File.join(job_dir, File.basename(queue.first))
           FileUtils.mv queue.first, qfile
           $stdout.puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
 
@@ -103,8 +103,10 @@ module PKGWizard
             end
             if meta[:status] == 'error'  
               FileUtils.mv job_dir, 'failed/'
+              FileUtils.ln_sf "#{File.basename(job_dir)}", "failed/last"
             else
               FileUtils.mv job_dir, 'output/'
+              FileUtils.ln_sf "#{File.basename(job_dir)}", "output/last"
             end
           end
         end
