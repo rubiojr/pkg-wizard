@@ -103,9 +103,11 @@ module PKGWizard
             end
             if meta[:status] == 'error'  
               FileUtils.mv job_dir, 'failed/'
+              FileUtils.rm_f 'failed/last' if File.exist?('failed/last')
               FileUtils.ln_sf "#{File.basename(job_dir)}", "failed/last"
             else
               FileUtils.mv job_dir, 'output/'
+              FileUtils.rm_f 'output/last' if File.exist?('output/last')
               FileUtils.ln_sf "#{File.basename(job_dir)}", "output/last"
             end
           end
