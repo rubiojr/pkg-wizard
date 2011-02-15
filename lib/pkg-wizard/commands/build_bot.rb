@@ -35,6 +35,10 @@ module PKGWizard
       :long => '--mock-profile PROF'
     
     class Webapp < Sinatra::Base
+      def find_job_path(name)
+        (Dir["failed/job_*"] + Dir["success/job_*"]).find { |j| File.basename(j) == name }
+      end
+
       post '/build/' do
         pkg = params[:pkg]
         if pkg.nil?
@@ -52,7 +56,7 @@ module PKGWizard
       # list failed pkgs
       get '/job/failed' do
         max = params[:max] || 10
-        jobs = Dir["failed/job_*"].sort { |a,b| a <=> b }
+        jobs = (Dir["failed/job_*"].sort { |a,b| a <=> b }).map { |j| File.basename(j) }
         max = max.to_i
         if jobs.size > max.to_i
           jobs[- max..-1].to_yaml
@@ -75,12 +79,32 @@ module PKGWizard
       # list failed pkgs
       get '/job/successful' do
         max = params[:max] || 10
-        jobs = Dir["output/job_*"].sort { |a,b| a <=> b }
+        jobs = (Dir["output/job_*"].sort { |a,b| a <=> b }).map { |j| File.basename(j) }
         max = max.to_i
         if jobs.size > max.to_i
           jobs[- max..-1].to_yaml
         else
           jobs.to_yaml
+        end
+      end
+
+      get '/job/rebuild/:name' do
+        name = params[:name]
+        job = find_job_path(name)
+        if job.nil?
+          status 404
+        else
+          $stdout.puts "Rebuilding job [#{name}]".ljust(40) + File.basename(Dir["#{job}/*.rpm"].first)
+          FileUtils.cp Dir["#{job}/*.rpm"].first, 'incoming/'
+        end
+      end
+
+      get '/job/current' do
+        job = Dir['workspace/job*'].first
+        if job
+          File.read(job + '/meta.yml')
+        else
+          status 404
         end
       end
 
@@ -146,6 +170,10 @@ module PKGWizard
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           meta[:source] = File.basename(queue.first)
+          meta[:status] = 'building'
+          File.open("workspace/job_#{job_time}/meta.yml", 'w') do |f|
+            f.puts meta.to_yaml
+          end
           FileUtils.mv queue.first, qfile
           $stdout.puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
 
