@@ -50,7 +50,7 @@ module PKGWizard
       bbot_host = cli.config[:buildbot]
       bbot_port = cli.config[:buildbot_port]
       bbot_url = "http://#{bbot_host}:#{bbot_port}"
-      if bbot_url.nil?
+      if bbot_host.nil?
         $stderr.puts "\n--buildbot is required.\n"
         puts cli.opt_parser.help
         exit 1
