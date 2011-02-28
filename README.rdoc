@@ -1,6 +1,20 @@
 = pkg-wizard
 
-Doc is comming...
+== Installation
+
+gem install pkg-wizard
+
+=== Requirements
+
+Git >= 1.7
+
+* Debian/Ubuntu
+
+apt-get install mock rpm yum git-core createrepo
+
+* RHEL/Fedora
+
+yum install rpmdevtools git createrepo mock yum-utils
 
 == Copyright
 

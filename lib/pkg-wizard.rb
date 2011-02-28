@@ -4,7 +4,7 @@ require 'mixlib/cli'
 
 module PKGWizard
 
-  VERSION = '0.1.8'
+  VERSION = '0.1.9'
   
   class Distribution
     def self.detect
