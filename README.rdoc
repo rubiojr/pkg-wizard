@@ -10,7 +10,7 @@ Git >= 1.7
 
 * Debian/Ubuntu
 
-apt-get install mock rpm yum git-core createrepo
+apt-get install build-essential ruby1.8-dev mock rpm yum git-core createrepo
 
 * RHEL/Fedora
 
