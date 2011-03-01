@@ -165,7 +165,7 @@ module PKGWizard
       Dir.mkdir 'archive' if not File.exist?('archive')
       Dir.mkdir 'failed' if not File.exist?('failed')
       Dir.mkdir 'snapshot' if not File.exist?('snapshot')
-      Dir.mkdir 'repo' if not File.exist?('repo')
+      FileUtils.ln_sf 'output', 'repo' if not File.exist?('repo')
 
       # createrepo scheduler
       createrepo_sched = Rufus::Scheduler.start_new
