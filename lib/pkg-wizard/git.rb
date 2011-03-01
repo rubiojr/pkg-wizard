@@ -1,4 +1,9 @@
-require 'git'
+
+begin
+  require 'git'
+rescue Git::GitExecuteError => e
+  $stderr.puts "WARNING: Git is not installed in your system. Run pkgwiz init-env first."
+end
 
 module PKGWizard
 
