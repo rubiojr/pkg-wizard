@@ -39,6 +39,10 @@ module PKGWizard
         (Dir["failed/job_*"] + Dir["success/job_*"]).find { |j| File.basename(j) == name }
       end
 
+      post '/createrepo' do
+        FileUtils.touch 'repo/.createrepo'
+      end
+
       post '/build/' do
         pkg = params[:pkg]
         if pkg.nil?
@@ -68,10 +72,12 @@ module PKGWizard
       get '/job/stats' do
         fjobs = Dir["failed/job*"].size
         sjobs = Dir["output/job*"].size
+        qjobs = Dir["incoming/*.src.rpm"].size
         total_jobs = fjobs + sjobs
         { 
           :failed_jobs => fjobs,
           :successful_jobs => sjobs,
+          :enqueued => qjobs,
           :total_jobs => total_jobs
         }.to_yaml
       end
@@ -158,6 +164,29 @@ module PKGWizard
       Dir.mkdir 'workspace' if not File.exist?('workspace')
       Dir.mkdir 'archive' if not File.exist?('archive')
       Dir.mkdir 'failed' if not File.exist?('failed')
+      Dir.mkdir 'snapshot' if not File.exist?('snapshot')
+      Dir.mkdir 'repo' if not File.exist?('repo')
+
+      # createrepo scheduler
+      createrepo_sched = Rufus::Scheduler.start_new
+      createrepo_sched.every '2s', :blocking => true do
+        if File.exist?('repo/.createrepo')
+          $stdout.puts '* createrepo START'
+          begin
+            output = `createrepo -q -o repo/ --update -d output/ 2>&1`
+            if $? != 0
+              raise Exception.new(output)
+            end
+            $stdout.puts '* createrepo DONE'
+          rescue Exception => e
+            $stdout.puts "createrepo operation failed".red.bold
+            File.open('repo/createrepo.log', 'a') { |f| f.puts e.message }
+          ensure
+            FileUtils.rm 'repo/.createrepo'
+          end
+        end
+      end
+
       scheduler = Rufus::Scheduler.start_new
       scheduler.every '2s', :blocking => true do
         meta[:start_time] = Time.now
