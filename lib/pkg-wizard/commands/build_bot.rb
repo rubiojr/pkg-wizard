@@ -42,6 +42,10 @@ module PKGWizard
       post '/createrepo' do
         FileUtils.touch 'repo/.createrepo'
       end
+      
+      post '/createsnapshot' do
+        FileUtils.touch 'snapshot/.createsnapshot'
+      end
 
       post '/build/' do
         pkg = params[:pkg]
@@ -166,6 +170,27 @@ module PKGWizard
       Dir.mkdir 'failed' if not File.exist?('failed')
       Dir.mkdir 'snapshot' if not File.exist?('snapshot')
       FileUtils.ln_sf 'output', 'repo' if not File.exist?('repo')
+      
+      # createrepo snapshot
+      snapshot_sched = Rufus::Scheduler.start_new
+      snapshot_sched.every '2s', :blocking => true do
+        if File.exist?('snapshot/.createsnapshot')
+          $stdout.puts '* snapshot START'
+          stamp = Time.now.strftime '%Y%m%d_%H%M%S'
+          snapshot_dir = "snapshot/snapshot_#{stamp}"
+          Dir.mkdir snapshot_dir
+          begin
+            Dir["output/*/result/*.rpm"].each do |rpm|
+              FileUtils.cp rpm, snapshot_dir
+            end
+            $stdout.puts '* snapshot DONE'
+          rescue Exception => e
+            $stdout.puts "snapshot operation failed".red.bold
+          ensure
+            FileUtils.rm 'snapshot/.createsnapshot'
+          end
+        end
+      end
 
       # createrepo scheduler
       createrepo_sched = Rufus::Scheduler.start_new
