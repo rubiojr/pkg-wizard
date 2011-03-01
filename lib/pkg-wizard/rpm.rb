@@ -1,3 +1,5 @@
+require 'fileutils'
+
 module PKGWizard
   class NoSpecFound < Exception; end
   class RPMBuildError < Exception; end
@@ -40,7 +42,7 @@ module PKGWizard
       pkg_release = File.read(specs.first).match(/Release:(.*?)$/)[1].strip.chomp.gsub(/%\{\?.*\}/, '')
       pkg_full_name = "#{pkg_name}-#{pkg_ver}-#{pkg_release}"
       %w(SOURCES SRPMS SPECS BUILDROOT RPMS BUILD).each do |d|
-        Dir.mkdir File.join(File.expand_path(rpmbuild_dir), d) if not File.exist?(File.join(rpmbuild_dir, d))
+        FileUtils.mkdir_p File.join(File.expand_path(rpmbuild_dir), d) if not File.exist?(File.join(rpmbuild_dir, d))
       end
       Dir['*'].each do |f|
         FileUtils.cp(f, "#{rpmbuild_dir}/SOURCES") if not File.directory?(f)
