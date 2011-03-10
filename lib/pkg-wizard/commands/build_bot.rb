@@ -3,6 +3,7 @@ require 'pkg-wizard/rpm'
 require 'pkg-wizard/logger'
 require 'pkg-wizard/git'
 require 'pkg-wizard/mock'
+require 'pkg-wizard/utils'
 require 'tmpdir'
 require 'fileutils'
 require 'uri'
@@ -46,6 +47,17 @@ module PKGWizard
       post '/createsnapshot' do
         FileUtils.touch 'snapshot/.createsnapshot'
       end
+      
+      post '/job/clean' do
+        dir = params[:dir] || 'output'
+        if dir == 'output'
+          FileUtils.touch 'output/.clean'
+        elsif dir == 'failed'
+          FileUtils.touch 'failed/.clean'
+        else
+          $stderr.puts "WARNING: job/clean Unknown dir #{dir}. Ignoring."
+        end
+      end
 
       post '/build/' do
         pkg = params[:pkg]
@@ -73,8 +85,16 @@ module PKGWizard
         end
       end
       
+      get '/server/stats' do
+        fs = PKGWizard::Utils.filesystem_status
+        { 
+          :filesystem => fs,
+        }.to_yaml
+      end
+      
       get '/job/stats' do
         fjobs = Dir["failed/job*"].size
+        snapshots = Dir["snapshot/snapshot*"].size
         sjobs = Dir["output/job*"].size
         qjobs = Dir["incoming/*.src.rpm"].size
         total_jobs = fjobs + sjobs
@@ -82,7 +102,8 @@ module PKGWizard
           :failed_jobs => fjobs,
           :successful_jobs => sjobs,
           :enqueued => qjobs,
-          :total_jobs => total_jobs
+          :total_jobs => total_jobs,
+          :snapshots => snapshots
         }.to_yaml
       end
 
@@ -170,6 +191,24 @@ module PKGWizard
       Dir.mkdir 'failed' if not File.exist?('failed')
       Dir.mkdir 'snapshot' if not File.exist?('snapshot')
       FileUtils.ln_sf 'output', 'repo' if not File.exist?('repo')
+      
+      cleaner = Rufus::Scheduler.start_new
+      cleaner.every '2s', :blocking => true do
+        if File.exist?('failed/.clean')
+          $stdout.puts '* cleaning FAILED jobs'
+          Dir["failed/job_*"].each do |d|
+            FileUtils.rm_rf d
+          end
+          FileUtils.rm 'failed/.clean'
+        end
+        if File.exist?('output/.clean')
+          $stdout.puts '* cleaning OUTPUT jobs'
+          Dir["output/job_*"].each do |d|
+            FileUtils.rm_rf d
+          end
+          FileUtils.rm 'output/.clean'
+        end
+      end
       
       # createrepo snapshot
       snapshot_sched = Rufus::Scheduler.start_new
