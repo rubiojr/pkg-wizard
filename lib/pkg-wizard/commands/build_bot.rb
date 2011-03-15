@@ -97,13 +97,15 @@ module PKGWizard
         snapshots = Dir["snapshot/snapshot*"].size
         sjobs = Dir["output/job*"].size
         qjobs = Dir["incoming/*.src.rpm"].size
+        cjobs = Dir["workspace/job_*"].size
         total_jobs = fjobs + sjobs
         { 
           :failed_jobs => fjobs,
           :successful_jobs => sjobs,
           :enqueued => qjobs,
           :total_jobs => total_jobs,
-          :snapshots => snapshots
+          :snapshots => snapshots,
+          :building => cjobs
         }.to_yaml
       end
 
@@ -251,11 +253,16 @@ module PKGWizard
         end
       end
 
+      # Build queue
       scheduler = Rufus::Scheduler.start_new
       scheduler.every '2s', :blocking => true do
         meta[:start_time] = Time.now
         queue = Dir['incoming/*.src.rpm'].sort_by {|filename| File.mtime(filename) }
         if not queue.empty?
+          # Clean workspace first
+          Dir["workspace/job_*"].each do |j|
+            FileUtils.rm_rf j
+          end
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
           qfile = File.join(job_dir, File.basename(queue.first))
           job_time = Time.now.strftime '%Y%m%d_%H%M%S'
