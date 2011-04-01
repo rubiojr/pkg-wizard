@@ -76,7 +76,11 @@ module PKGWizard
       # list failed pkgs
       get '/job/failed' do
         max = params[:max] || 10
+        # Find failed jobs
         jobs = (Dir["failed/job_*"].sort { |a,b| a <=> b }).map { |j| File.basename(j) }
+
+        # format job as job_XXXX_XXX (pkgname)
+        jobs = jobs.map { |j| "#{j} (#{File.basename(Dir["failed/#{j}/*.src.rpm"].first(), '.src.rpm')})" }
         max = max.to_i
         if jobs.size > max.to_i
           jobs[- max..-1].to_yaml
@@ -109,7 +113,7 @@ module PKGWizard
         }.to_yaml
       end
 
-      # list failed pkgs
+      # list successfully built pkgs
       get '/job/successful' do
         max = params[:max] || 10
         jobs = (Dir["output/job_*"].sort { |a,b| a <=> b }).map { |j| File.basename(j) }
@@ -121,7 +125,10 @@ module PKGWizard
         end
       end
 
-      get '/job/rebuild/:name' do
+      #
+      # Rebuild a previous job (It can be either successful or failed build)
+      # 
+      post '/job/rebuild/:name' do
         name = params[:name]
         job = find_job_path(name)
         if job.nil?
@@ -129,9 +136,11 @@ module PKGWizard
         else
           $stdout.puts "Rebuilding job [#{name}]".ljust(40) + File.basename(Dir["#{job}/*.rpm"].first)
           FileUtils.cp Dir["#{job}/*.rpm"].first, 'incoming/'
+          FileUtils.rm_rf job
         end
       end
 
+      # Get current building job (empty output if none)
       get '/job/current' do
         job = Dir['workspace/job*'].first
         if job
@@ -141,6 +150,8 @@ module PKGWizard
         end
       end
 
+
+      # Get job info
       get '/job/:name' do
         jname = params[:name]
         jobs = Dir['output/job_*'] + Dir['failed/job_*']
@@ -202,6 +213,7 @@ module PKGWizard
             FileUtils.rm_rf d
           end
           FileUtils.rm 'failed/.clean'
+          FileUtils.rm_rf "failed/last"
         end
         if File.exist?('output/.clean')
           $stdout.puts '* cleaning OUTPUT jobs'
@@ -209,6 +221,8 @@ module PKGWizard
             FileUtils.rm_rf d
           end
           FileUtils.rm 'output/.clean'
+          FileUtils.rm_rf 'output/repodata'
+          FileUtils.rm_rf 'output/last'
         end
       end
       
