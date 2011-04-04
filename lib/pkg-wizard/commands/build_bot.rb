@@ -44,6 +44,9 @@ module PKGWizard
     option :daemonize,
       :long => '--daemonize',
       :default => false
+
+    option :working_dir,
+      :long => '--working-dir DIR'
     
     class Webapp < Sinatra::Base
       def find_job_path(name)
@@ -199,17 +202,20 @@ module PKGWizard
       cli = BuildBot.new
       cli.banner = "\nUsage: rpmwiz build-bot (options)\n\n"
       cli.parse_options
+      pwd = cli.config[:working_dir] || Dir.pwd
+      pwd = File.expand_path pwd
       if cli.config[:daemonize]
-        pwd = Dir.pwd
         umask = File.umask
         Daemons.daemonize :app_name => 'build-bot', :dir_mode => :normal, :dir => pwd
         Dir.chdir pwd
-        File.umask umask
         log = File.new("build-bot.log", "a")
         $stdout.reopen(log)
         $stderr.reopen(log)
         $stdout.sync = true
         $stderr.sync = true
+        File.umask umask
+      else
+        Dir.chdir pwd
       end
 
       mock_profile = cli.config[:mock_profile]

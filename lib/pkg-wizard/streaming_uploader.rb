@@ -48,8 +48,6 @@ module PKGWizard
         
         url = URI.parse(to_url)
         
-        headers = { 'accept' => 'application/json' }
-
         req = Net::HTTP::Post.new(url.path)
         req.content_length = body_stream.size
         req.content_type = 'multipart/form-data; boundary=' + boundary unless parts.empty?

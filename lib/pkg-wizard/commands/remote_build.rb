@@ -33,9 +33,9 @@ module PKGWizard
     
     option :buildbot_port,
       :short => '-p PORT',
-      :description => 'rpmwiz build-bot PORT (default 4567)',
+      :description => 'rpmwiz build-bot PORT (default 80)',
       :long => '--buildbot-port PORT',
-      :default => 4567
+      :default => 80 
 
     option :tmpdir,
       :short => '-t TEMP',
