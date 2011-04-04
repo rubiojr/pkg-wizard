@@ -12,6 +12,7 @@ require 'rufus/scheduler'
 require 'term/ansicolor'
 require 'pp'
 require 'yaml'
+require 'daemons'
 
 class String
   include Term::ANSIColor
@@ -34,6 +35,15 @@ module PKGWizard
     option :mock_profile,
       :short =>  '-m PROF',
       :long => '--mock-profile PROF'
+    
+    option :port,
+      :short =>  '-p PORT',
+      :long => '--port PORT',
+      :default => 4567
+
+    option :daemonize,
+      :long => '--daemonize',
+      :default => false
     
     class Webapp < Sinatra::Base
       def find_job_path(name)
@@ -189,13 +199,38 @@ module PKGWizard
       cli = BuildBot.new
       cli.banner = "\nUsage: rpmwiz build-bot (options)\n\n"
       cli.parse_options
+      if cli.config[:daemonize]
+        pwd = Dir.pwd
+        umask = File.umask
+        Daemons.daemonize :app_name => 'build-bot', :dir_mode => :normal, :dir => pwd
+        Dir.chdir pwd
+        File.umask umask
+        log = File.new("build-bot.log", "a")
+        $stdout.reopen(log)
+        $stderr.reopen(log)
+        $stdout.sync = true
+        $stderr.sync = true
+      end
+
       mock_profile = cli.config[:mock_profile]
       if not mock_profile
         $stderr.puts 'Invalid mock profile.'
         $stderr.puts cli.opt_parser.help
-        exit
+        exit 1
       end
+
+      if not File.exist? '/usr/bin/rpmbuild'
+        $stderr.puts 'rpmbuild command not found. Install it first.'
+        exit 1
+      end
+      
+      if not File.exist? '/usr/sbin/mock'
+        $stderr.puts 'mock command not found. Install it first.'
+        exit 1
+      end
+
       meta = { :mock_profile  => mock_profile }
+      
       
       Dir.mkdir 'incoming' if not File.exist?('incoming')
       Dir.mkdir 'output' if not File.exist?('output')
@@ -321,6 +356,7 @@ module PKGWizard
           end
         end
       end
+      Webapp.set :port => cli.config[:port]
       Webapp.run!
     end
 

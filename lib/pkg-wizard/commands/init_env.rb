@@ -30,7 +30,7 @@ module PKGWizard
       end
       if File.exist?('/etc/redhat-release')
         print '* Installing RHEL/Fedora requirements... '
-        output = `yum install -y git rpmdevtools mock createrepo yum-utils screen`
+        output = `yum install -y git rpm-build rpmdevtools mock createrepo yum-utils screen`
         if $? != 0
           $stderr.puts "Failed installing requirementes: \n#{output}"
           exit 1

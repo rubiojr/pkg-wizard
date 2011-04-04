@@ -29,6 +29,7 @@ Jeweler::Tasks.new do |gem|
   gem.add_runtime_dependency 'rufus-scheduler'
   gem.add_runtime_dependency 'term-ansicolor'
   gem.add_runtime_dependency 'mixlib-cli'
+  gem.add_runtime_dependency 'daemons'
   #  gem.add_development_dependency 'rspec', '> 1.2.3'
 end
 Jeweler::RubygemsDotOrgTasks.new
