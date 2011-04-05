@@ -13,12 +13,14 @@ require 'term/ansicolor'
 require 'pp'
 require 'yaml'
 require 'daemons'
+  
 
 class String
   include Term::ANSIColor
 end
 
 module PKGWizard  
+
   class BuildBot < Command
 
     registry << { :name => 'build-bot', :klass => self }
@@ -48,9 +50,28 @@ module PKGWizard
     option :working_dir,
       :long => '--working-dir DIR'
     
+    # not implemented
+    option :log_format,
+      :long => '--log-format FMT',
+      :description => 'Log format to use (web, cli)',
+      :default => 'cli'
+    
     class Webapp < Sinatra::Base
       def find_job_path(name)
         (Dir["failed/job_*"] + Dir["success/job_*"]).find { |j| File.basename(j) == name }
+      end
+
+      post '/tag/:name' do
+        name = params[:name]
+        if name.nil? or name.strip.chomp.empty?
+          status 400
+          'Invalid tag'
+        else
+          File.open('tags/.tag', 'w') do |f|
+            f.puts name
+          end
+          "Tagging #{name}..."
+        end
       end
 
       post '/createrepo' do
@@ -80,9 +101,9 @@ module PKGWizard
           "Missing pkg parameter.\n"
         else
           incoming_file = "incoming/#{pkg[:filename]}"
-          $stdout.puts "Incoming file".ljust(40) + "#{pkg[:filename]}"
+          puts "Incoming file".ljust(40) + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
-          $stdout.puts "File saved".ljust(40) + "#{pkg[:filename]}"
+          puts "File saved".ljust(40) + "#{pkg[:filename]}"
         end
       end
 
@@ -147,7 +168,7 @@ module PKGWizard
         if job.nil?
           status 404
         else
-          $stdout.puts "Rebuilding job [#{name}]".ljust(40) + File.basename(Dir["#{job}/*.rpm"].first)
+          puts "Rebuilding job [#{name}]".ljust(40) + File.basename(Dir["#{job}/*.rpm"].first)
           FileUtils.cp Dir["#{job}/*.rpm"].first, 'incoming/'
           FileUtils.rm_rf job
         end
@@ -244,12 +265,13 @@ module PKGWizard
       Dir.mkdir 'archive' if not File.exist?('archive')
       Dir.mkdir 'failed' if not File.exist?('failed')
       Dir.mkdir 'snapshot' if not File.exist?('snapshot')
+      Dir.mkdir 'tags' if not File.exist?('tags')
       FileUtils.ln_sf 'output', 'repo' if not File.exist?('repo')
       
       cleaner = Rufus::Scheduler.start_new
       cleaner.every '2s', :blocking => true do
         if File.exist?('failed/.clean')
-          $stdout.puts '* cleaning FAILED jobs'
+          puts '* cleaning FAILED jobs'
           Dir["failed/job_*"].each do |d|
             FileUtils.rm_rf d
           end
@@ -257,7 +279,7 @@ module PKGWizard
           FileUtils.rm_rf "failed/last"
         end
         if File.exist?('output/.clean')
-          $stdout.puts '* cleaning OUTPUT jobs'
+          puts '* cleaning OUTPUT jobs'
           Dir["output/job_*"].each do |d|
             FileUtils.rm_rf d
           end
@@ -266,22 +288,43 @@ module PKGWizard
           FileUtils.rm_rf 'output/last'
         end
       end
+
+      # tag routine
+      tag_sched = Rufus::Scheduler.start_new
+      tag_sched.every '2s', :blocking => true do
+        if File.exist?('tags/.tag')
+          tag = File.read('tags/.tag').strip.chomp
+          tag_dir = "tags/#{tag}"
+          Dir.mkdir(tag_dir) if not File.exist?(tag_dir)
+          Dir["output/*/result/*.rpm"].sort.each do |rpm|
+            FileUtils.cp rpm, tag_dir 
+          end
+          puts "* create tag #{tag} repo START"
+          output = `createrepo -q -o #{tag_dir} --update -d #{tag_dir} 2>&1`
+          if $? != 0
+            puts "create tag #{tag} operation failed: #{output}".red.bold
+          else
+            puts "* create tag #{tag} DONE"
+          end
+          FileUtils.rm 'tags/.tag'
+        end
+      end
       
       # createrepo snapshot
       snapshot_sched = Rufus::Scheduler.start_new
       snapshot_sched.every '2s', :blocking => true do
         if File.exist?('snapshot/.createsnapshot')
-          $stdout.puts '* snapshot START'
+          puts '* snapshot START'
           stamp = Time.now.strftime '%Y%m%d_%H%M%S'
           snapshot_dir = "snapshot/snapshot_#{stamp}"
           Dir.mkdir snapshot_dir
           begin
-            Dir["output/*/result/*.rpm"].each do |rpm|
+            Dir["output/*/result/*.rpm"].sort.each do |rpm|
               FileUtils.cp rpm, snapshot_dir
             end
-            $stdout.puts '* snapshot DONE'
+            puts '* snapshot DONE'
           rescue Exception => e
-            $stdout.puts "snapshot operation failed".red.bold
+            $stderr.puts "snapshot operation failed".red.bold
           ensure
             FileUtils.rm 'snapshot/.createsnapshot'
           end
@@ -292,15 +335,15 @@ module PKGWizard
       createrepo_sched = Rufus::Scheduler.start_new
       createrepo_sched.every '2s', :blocking => true do
         if File.exist?('repo/.createrepo')
-          $stdout.puts '* createrepo START'
+          puts '* createrepo START'
           begin
             output = `createrepo -q -o repo/ --update -d output/ 2>&1`
             if $? != 0
               raise Exception.new(output)
             end
-            $stdout.puts '* createrepo DONE'
+            puts '* createrepo DONE'
           rescue Exception => e
-            $stdout.puts "createrepo operation failed".red.bold
+            $stderr.puts "createrepo operation failed".red.bold
             File.open('repo/createrepo.log', 'a') { |f| f.puts e.message }
           ensure
             FileUtils.rm 'repo/.createrepo'
@@ -321,7 +364,7 @@ module PKGWizard
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
           qfile = File.join(job_dir, File.basename(queue.first))
           job_time = Time.now.strftime '%Y%m%d_%H%M%S'
-          $stdout.puts "Job accepted [job_#{job_time}]".ljust(40) + File.basename(qfile)
+          puts "Job accepted [job_#{job_time}]".ljust(40) + File.basename(qfile)
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           meta[:source] = File.basename(queue.first)
@@ -330,7 +373,7 @@ module PKGWizard
             f.puts meta.to_yaml
           end
           FileUtils.mv queue.first, qfile
-          $stdout.puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
+          puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
 
           rdir = nil
           begin
@@ -338,10 +381,10 @@ module PKGWizard
             meta[:status] = 'ok'
             meta[:end_time] = Time.now
             meta[:build_time] = meta[:end_time] - meta[:start_time]
-            $stdout.puts "Build OK [job_#{job_time}] #{meta[:build_time].to_i}s ".ljust(40).green.bold + "#{File.basename(qfile)}"
+            puts "Build OK [job_#{job_time}] #{meta[:build_time].to_i}s ".ljust(40).green.bold + "#{File.basename(qfile)}"
           rescue Exception => e
             meta[:status] = 'error'
-            $stdout.puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold  + "#{File.basename(qfile)}"
+            puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold + "#{File.basename(qfile)}"
             File.open(job_dir + '/buildbot.log', 'w') do |f|
               f.puts "#{e.backtrace.join("\n")}"
               f.puts "#{e.message}"
