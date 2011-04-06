@@ -10,12 +10,14 @@ html {
 }
 
 .log {
-  font-size: large;
   color: white;
   background-color: #000;
+  font-size: small;
+  font-family: 'monospace';
 }
 
 .logline {
+  padding-top: 4px;
 }
 
 .logline:hover {
