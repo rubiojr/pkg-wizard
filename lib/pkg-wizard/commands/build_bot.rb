@@ -15,13 +15,11 @@ require 'yaml'
 require 'daemons'
 
 module FakeColor
-
   def red; "<span style='color: red'>#{self}</span>"; end
   def blue; "<span style='color: blue'>#{self}</span>"; end
   def yellow; "<span style='color: yellow'>#{self}</span>"; end
   def green; "<span style='color: green'>#{self}</span>"; end
   def bold; "<b>#{self}</b>"; end
-
 end
 
 module PKGWizard  
