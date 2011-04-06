@@ -13,13 +13,42 @@ require 'term/ansicolor'
 require 'pp'
 require 'yaml'
 require 'daemons'
-  
 
-class String
-  include Term::ANSIColor
+module FakeColor
+
+  def red; "<span style='color: red'>#{self}</span>"; end
+  def blue; "<span style='color: blue'>#{self}</span>"; end
+  def yellow; "<span style='color: yellow'>#{self}</span>"; end
+  def green; "<span style='color: green'>#{self}</span>"; end
+  def bold; "<b>#{self}</b>"; end
+
 end
 
 module PKGWizard  
+
+  class NodeRunner
+    @@logfile = '/dev/null'
+
+    def self.logfile=(logfile)
+      @@logfile = logfile
+    end
+
+    def self.available?
+      not `which node`.strip.chomp.empty?
+    end
+
+    def self.kill
+      Process.kill 15, @@proc.pid
+    end
+
+    def self.run
+      wslogview_dir = 'wslogview'
+      if not defined? @@proc
+        puts '* starting NODE.JS...'
+        @@proc = IO.popen("node wslogview/server.js #{@@logfile}")
+      end
+    end
+  end
 
   class BuildBot < Command
 
@@ -55,6 +84,11 @@ module PKGWizard
       :long => '--log-format FMT',
       :description => 'Log format to use (web, cli)',
       :default => 'cli'
+
+    option :log_server_port,
+      :long => '--log-server-port PORT',
+      :description => 'log server port (60001 default)',
+      :default => '60001'
     
     class Webapp < Sinatra::Base
       def find_job_path(name)
@@ -104,6 +138,18 @@ module PKGWizard
           puts "Incoming file".ljust(40) + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
           puts "File saved".ljust(40) + "#{pkg[:filename]}"
+        end
+      end
+
+      # log
+      get '/log' do
+        if NodeRunner.available?
+          NodeRunner.run
+          sleep 0.5
+          index = 'wslogview/index.html'
+          File.read index
+        else
+          'node.js is not installed: Real time logs disabled :('
         end
       end
 
@@ -223,7 +269,30 @@ module PKGWizard
       cli = BuildBot.new
       cli.banner = "\nUsage: rpmwiz build-bot (options)\n\n"
       cli.parse_options
+
+      ## Node.JS log server stuff
+      wslogview_dir = File.join(File.dirname(__FILE__), '/../../../resources/wslogview/')
+      node_port = cli.config[:log_server_port]
+      if not File.exist?('wslogview')
+        FileUtils.cp_r wslogview_dir, 'wslogview'
+      end
+      html = File.read('wslogview/index.html.tmpl').gsub('@@NODEJSPORT@@', node_port)
+      serverjs = File.read('wslogview/server.js.tmpl').gsub('@@NODEJSPORT@@', node_port)
+      File.open 'wslogview/index.html', 'w' do |f|
+        f.puts html
+      end
+      File.open 'wslogview/server.js', 'w' do |f|
+        f.puts serverjs 
+      end
+
+      if cli.config[:log_format] == 'web'
+        String.class_eval do include FakeColor; end
+      else
+        String.class_eval do include Term::ANSIColor; end
+      end
+
       pwd = cli.config[:working_dir] || Dir.pwd
+      NodeRunner.logfile = (cli.config[:working_dir] || Dir.pwd) + '/build-bot.log'
       pwd = File.expand_path pwd
       if cli.config[:daemonize]
         umask = File.umask
@@ -406,7 +475,11 @@ module PKGWizard
         end
       end
       Webapp.set :port => cli.config[:port]
+      Webapp.set :public => 'wslogview'
       Webapp.run!
+      at_exit do 
+        NodeRunner.kill
+      end 
     end
 
   end

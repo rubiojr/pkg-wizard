@@ -1,0 +1,24 @@
+html {
+  background-color: #000;
+  color: #fff;
+}
+
+.header {
+  font-weight: bold;
+  text-align: center;
+  font-size: 25px;
+}
+
+.log {
+  font-size: large;
+  color: white;
+  background-color: #000;
+}
+
+.logline {
+}
+
+.logline:hover {
+  background-color: red;
+  color: white;
+}

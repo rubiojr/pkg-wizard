@@ -1,0 +1,39 @@
+var sys = require("sys"),
+    ws = require("./ws");
+var fs = require('fs');
+
+var spawn = require('child_process').spawn,
+  buildbot = spawn('tail', ['-f', '-s 0', process.ARGV[2]]);
+
+process.on('SIGTERM', function () {
+	sys.puts('About to exit.');
+	buildbot.kill();
+	process.exit(0);
+});
+
+process.on('SIGINT', function () {
+	sys.puts('About to exit.');
+	buildbot.kill();
+	process.exit(0);
+});
+
+function doit(ws) {
+  var outd = '';
+
+  buildbot.stdout.on("data", function (data) {
+    ws.write("{\"buildbot\" : \"" + escape(data) + "\"}");
+    sys.puts(data);
+  });
+
+}
+
+  ws.createServer(function (websocket) {
+    websocket.addListener("connect", function (resource) { 
+      setInterval(doit(websocket), 1000); 
+    }).addListener("data", function (data) { 
+      websocket.write("Thanks!");
+    }).addListener("close", function () { 
+      // emitted when server or client closes connection
+      sys.debug("close");
+    });
+  }).listen(@@NODEJSPORT@@);
