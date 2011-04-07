@@ -1,5 +1,7 @@
 ## pkg-wizard
 
+**pkg-wizard** Ruby library and tools to deal with RPM packager tasks.
+
 ### Installation
 
 Have a look at:
