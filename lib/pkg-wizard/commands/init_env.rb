@@ -29,24 +29,38 @@ module PKGWizard
         exit 1
       end
       if File.exist?('/etc/redhat-release')
-        print '* Installing RHEL/Fedora requirements... '
-        output = `yum install -y git rpm-build rpmdevtools mock createrepo yum-utils screen`
-        if $? != 0
-          $stderr.puts "Failed installing requirementes: \n#{output}"
+        puts '* Installing RHEL/Fedora requirements... '
+        rhel_ver = File.readlines('/etc/redhat-release').first.match(/release\s+(\d)\./)[1] rescue nil
+        if not rhel_ver
+          $stderr.puts "Unsupported RHEL/Fedora distribution"
           exit 1
         end
-        puts "done."
+        if rhel_ver == "6"
+          puts "* Installing EPEL 6 repo.."
+          abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/epel-release-6-5.noarch.rpm --force"
+        elsif rhel_ver == "5"
+          puts "* Installing EPEL 5 repo.."
+          abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/epel-release-5-4.noarch.rpm --force"
+        else
+        end
+
+        abort_if_err "yum install -y git rpm-build rpmdevtools mock createrepo yum-utils screen"
       elsif File.exist?('/etc/lsb-release') and \
         File.read('/etc/lsb-release') =~ /DISTRIB_ID=Ubuntu/
-          print '* Installing Ubuntu requirements... '
-          output = `apt-get install -y git-core mock createrepo rpm yum screen`
-          if $? != 0
-            $stderr.puts "Failed installing requirementes: \n#{output}"
-            exit 1
-          end
-          puts "done."
+          puts '* Installing Ubuntu requirements... '
+          abort_if_err "apt-get install -y nodejs git-core mock createrepo rpm yum screen"
       else
-        $stderr.puts 'unsupported distribuition'
+        $stderr.puts 'ERROR: Unsupported distribuition'
+      end
+      puts "* Done"
+    end
+    def self.abort_if_err(cmd, msg = nil)
+      msg = "Failed running command: #{cmd}" if msg.nil?
+      output = `#{cmd} 2>&1`
+      if $? != 0
+        $stderr.puts msg
+        $stderr.puts output
+        exit 1
       end
     end
 
