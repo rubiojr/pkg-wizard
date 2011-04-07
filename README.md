@@ -1,6 +1,6 @@
-## pkg-wizard
+### Package Wizard
 
-**pkg-wizard** Ruby library and tools to deal with RPM packager tasks.
+Ruby library and tools to deal with RPM packager tasks.
 
 ### Installation
 
