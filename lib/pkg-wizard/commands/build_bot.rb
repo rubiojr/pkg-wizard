@@ -264,7 +264,7 @@ module PKGWizard
     
     def self.perform
       cli = BuildBot.new
-      cli.banner = "\nUsage: rpmwiz build-bot (options)\n\n"
+      cli.banner = "\nUsage: pkgwiz build-bot (options)\n\n"
       cli.parse_options
 
       ## Node.JS log server stuff

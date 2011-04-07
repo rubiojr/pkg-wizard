@@ -22,7 +22,7 @@ module PKGWizard
     def self.perform
       $stdout.sync = true
       cmd = InitEnv.new
-      cmd.banner = "\nUsage: rpmwiz init-env\n\n"
+      cmd.banner = "\nUsage: pkgwiz init-env\n\n"
       cmd.parse_options
       if `whoami`.strip.chomp != 'root'
         $stderr.puts 'Run this command as root.'

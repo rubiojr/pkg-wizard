@@ -28,12 +28,12 @@ module PKGWizard
 
     option :buildbot,
       :short => '-b URL',
-      :description => 'rpmwiz build-bot URL',
+      :description => 'pkg-wizard build-bot URL',
       :long => '--buildbot URL'
     
     option :buildbot_port,
       :short => '-p PORT',
-      :description => 'rpmwiz build-bot PORT (default 80)',
+      :description => 'pkg-wizard build-bot PORT (default 4567)',
       :long => '--buildbot-port PORT',
       :default => 4567
 
@@ -49,7 +49,7 @@ module PKGWizard
     
     def self.perform
       cli = RemoteBuild.new
-      cli.banner = "\nUsage: rpmwiz remote-build (options)\n\n"
+      cli.banner = "\nUsage: pkgwiz remote-build (options)\n\n"
       pkgs = cli.parse_options
       bbot_host = cli.config[:buildbot]
       bbot_port = cli.config[:buildbot_port]

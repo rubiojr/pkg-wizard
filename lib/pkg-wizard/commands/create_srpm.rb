@@ -36,10 +36,10 @@ module PKGWizard
 
     def self.perform
       cmd = CreateSrpm.new
-      cmd.banner = "\nUsage: rpmwiz create-srpm (options)\n\n"
+      cmd.banner = "\nUsage: pkgwiz create-srpm (options)\n\n"
       cmd.parse_options
       repo = cmd.config[:gitrepo]
-      workspace = cmd.config[:workspace] || "/tmp/rpmwiz-#{Time.now.to_i}"
+      workspace = cmd.config[:workspace] || "/tmp/pkgwiz-#{Time.now.to_i}"
       FileUtils.mkdir_p(workspace) if not File.exist?(workspace)
       source_dir = workspace + '/SOURCES'
 
