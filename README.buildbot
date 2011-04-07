@@ -1,0 +1,31 @@
+# Create yum repo in the output directory
+curl  -X POST http://bh01.frameos.org:4567/createrepo
+
+# Create a snapshot of the output directory
+curl  -X POST http://bh01.frameos.org:4567/createsnapshot
+
+# Clean output dir
+curl  -X POST http://bh01.frameos.org:4567/job/clean
+
+# Clean failed dir
+curl  -X POST http://bh01.frameos.org:4567/job/clean -ddir=failed
+
+# list failed jobs (yaml)
+curl http://bh01.frameos.org:4567/job/failed
+
+# server stats (yaml)
+curl http://bh01.frameos.org:4567/server/stats
+
+# job stats (yaml)
+curl http://bh01.frameos.org:4567/job/stats
+
+# list successfully built pkgs
+curl http://bh01.frameos.org:4567/job/successful
+
+# Rebuild a previous job (It can be either successful or failed build)
+curl -X POST http://bh01.frameos.org:4567/job/rebuild/job_XXXXX_XXXX
+
+# Get job info
+curl http://bh01.frameos.org:4567/job/job_XXXXX_XXXX
+
+
