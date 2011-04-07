@@ -35,7 +35,11 @@ module PKGWizard
       :short => '-p PORT',
       :description => 'rpmwiz build-bot PORT (default 80)',
       :long => '--buildbot-port PORT',
-      :default => 80 
+      :default => 4567
+
+    option :source,
+      :short => '-s SOURCE',
+      :long => '--source SRC'
 
     option :tmpdir,
       :short => '-t TEMP',
@@ -61,6 +65,33 @@ module PKGWizard
           pkg = URI.parse(p).path.split("/").last
           $stdout.puts "Downloading: #{pkg}"
           downloaded_pkgs << download_from_url(p,cli.config[:tmpdir]) 
+          true
+        elsif p =~ /git:\/\//
+          require 'tmpdir'
+          d = Dir.mktmpdir
+
+          # Fetch the package sources using Git
+          $stdout.puts "Fetching package sources from Git..."
+          PKGWizard::GitRPM.fetch p, d
+          spec = Dir["#{d}/*.spec"].first
+          pwd = Dir.pwd
+          Dir.chdir d
+
+          # Download sources
+          source = cli.config[:source]
+          if source and source =~ /http:\/\//
+            url = URI.parse(source)
+            $stdout.puts "Downloading source #{File.basename(url.path)}..."
+            download_from_url(source,d) 
+            puts
+          end
+
+          # Create the SRPM
+          $stdout.puts "Creating SRPM for #{spec}..."
+          srpm = SRPM.create
+          downloaded_pkgs << srpm
+          Dir.chdir pwd
+          FileUtils.rm_rf d
           true
         else
           false

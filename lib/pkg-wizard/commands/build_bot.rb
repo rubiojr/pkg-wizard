@@ -133,9 +133,8 @@ module PKGWizard
           "Missing pkg parameter.\n"
         else
           incoming_file = "incoming/#{pkg[:filename]}"
-          puts "Incoming file".ljust(40) + "#{pkg[:filename]}"
+          puts "* incoming file".ljust(40) + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
-          puts "File saved".ljust(40) + "#{pkg[:filename]}"
         end
       end
 
@@ -431,7 +430,6 @@ module PKGWizard
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
           qfile = File.join(job_dir, File.basename(queue.first))
           job_time = Time.now.strftime '%Y%m%d_%H%M%S'
-          puts "Job accepted [job_#{job_time}]".ljust(40) + File.basename(qfile)
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
           meta[:source] = File.basename(queue.first)
