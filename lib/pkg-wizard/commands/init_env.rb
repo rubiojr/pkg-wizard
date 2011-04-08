@@ -38,13 +38,18 @@ module PKGWizard
         if rhel_ver == "6"
           puts "* Installing EPEL 6 repo.."
           abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/epel-release-6-5.noarch.rpm --force"
+          puts "* Installing RBEL 6 repo.." 
+          abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/rbel6-release-1.0-1.el6.noarch.rpm --force"
         elsif rhel_ver == "5"
           puts "* Installing EPEL 5 repo.."
           abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/epel-release-5-4.noarch.rpm --force"
+          puts "* Installing RBEL 5 repo.." 
+          abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/rbel5-release-1.0-1.el5.noarch.rpm --force"
         else
         end
 
-        abort_if_err "yum install -y git rpm-build rpmdevtools mock createrepo yum-utils screen"
+        abort_if_err "yum clean metadata"
+        abort_if_err "yum install -y nodejs git rpm-build rpmdevtools mock createrepo yum-utils screen"
       elsif File.exist?('/etc/lsb-release') and \
         File.read('/etc/lsb-release') =~ /DISTRIB_ID=Ubuntu/
           puts '* Installing Ubuntu requirements... '

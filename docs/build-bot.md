@@ -20,12 +20,37 @@ If you have tried to install and use Koji before, you know the drill. Having sai
 Used in combination with pkg-wizard [remote-build](remote-build.html), you can:
   
 * Send source RPMS to build-bot (RPM spec file and sources can be local or remote)
-* Monitor the build process
+* Monitor the build process 
 * Tag builds
 * Create yum repos
 * Rebuild failed builds
 * Review build logs
 
+## RUNNING A PKG-WIZARD BUILD-BOT
+
+I assume that you have pkg-wizard already installed. Refer to [INSTALLING PKG-WIZARD](install.html) and [INIT-ENV](init-env.html) otherwise.
+
+Starting a new build-bot for the first time:
+
+1. Create a buildbot user
+
+   `$ adduser buildbot`
+
+2. Add the buildbot user to the mock group
+
+   `$ gpasswd -a buildbot mock`
+
+3. Change user ID to buildbot and change to the /home/buildbot directory
+
+   `$ su buildbot && cd`
+
+4. Start the build-bot
+
+   `$ pkgwiz build-bot --mock-profile frameos-6`
+
+This will start a build-bot listening in port 4567/tcp, using the mock profile from /etc/mock/frameos-6.cfg. From now on, the build-bot is ready to accept packages.
+
+Have a look at [pkgwiz](pkgwiz.html) [remote-build](remote-build.html) to learn how to send packages to the build-bot.
 
 ## USAGE
 
@@ -43,7 +68,24 @@ Usage: pkgwiz build-bot (options)
         --working-dir DIR
     -h, --help                       Show this message
 
+## UNDERSTANDING BUILD-BOT DIRECTORY LAYOUT
+
+When pkg-wizard build-bot is started for the first time, it will create a few directories in the current working directory.
+
+**incoming**
+
+**output**
+
+**failed**
+
+**snapshot**
+
+**tags**
+
+**workspace**
+
+**archive**
 
 ## SEE ALSO
 
-[PKGWIZ](pkgwiz.html), [REMOTE-BUILD](remote-build.html), [INSTALLING PKG-WIZARD](install.html)
+[PKGWIZ](pkgwiz.html), [INIT-ENV](init-env.html), [REMOTE-BUILD](remote-build.html), [INSTALLING PKG-WIZARD](install.html)

@@ -8,9 +8,11 @@ pkg-wizard -- simple framework and tools to build and manage RPM packages
 pkg-wizard installs [pkgwiz](pkgwiz.html), the command line tool used to manage and build RPMS/SRPMS.
 ## INSTALLATION
 
-1. Install rubygems
+Follow these steps (as root):
 
-   `yum install rubygems`
+1. Install dependencies
+
+   `yum install rubygems make ruby-devel gcc gcc-c++`
 
 2. Install pkg-wizard
 
