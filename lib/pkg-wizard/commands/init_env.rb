@@ -47,7 +47,12 @@ module PKGWizard
           abort_if_err "rpm -Uvh #{File.dirname(__FILE__)}/../../../packages/rbel5-release-1.0-1.el5.noarch.rpm --force"
         else
         end
+        
+        puts "* Installing init script..."
+        FileUtils.cp File.dirname(__FILE__) + '/../../../resources/init-scripts/pkgwiz-buildbot', '/etc/init.d/'
+        abort_if_err "chkconfig --add pkgwiz-buildbot"
 
+        puts "* Installing dependencies..."
         abort_if_err "yum clean metadata"
         abort_if_err "yum install -y nodejs git rpm-build rpmdevtools mock createrepo yum-utils screen"
       elsif File.exist?('/etc/lsb-release') and \

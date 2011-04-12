@@ -1,0 +1,72 @@
+#!/bin/sh
+#
+# pkgwiz build-bot - this script starts and stops the pkg-wizard build-bot
+#
+# chkconfig:   - 85 15
+# description:  PKG Wizard Build Bot
+# processname: build-bot
+# config:      /etc/sysconfig/pkgwiz-buildbot
+# pidfile:     /home/buildbot/build-bot.pid
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+if [ -f /etc/sysconfig/pkgwiz-buildbot ];then 
+	. /etc/sysconfig/pkgwiz-buildbot
+else
+	echo "Config file not found in /etc/sysconfig/pkgwiz-buildbot. Aborting."
+	exit 1
+fi
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+if [ -z "$MOCK_PROFILE" ]; then
+	echo "Mock profile not defined in /etc/sysconfig/pkgwiz-buildbot. Aborting."
+	exit 1
+fi
+
+pkgwiz="/usr/bin/pkgwiz"
+workingdir=/home/buildbot
+user="buildbot"
+prog=$(basename $pkgwiz)
+
+start() {
+    echo -n $"Starting $prog: "
+    cd $workingdir && su $user -c "$pkgwiz build-bot --working-dir $workingdir --daemonize --log-format web -m $MOCK_PROFILE"
+    retval=$?
+    echo
+    return $retval
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    kill `cat ${workingdir}/build-bot.pid`
+    retval=$?
+    echo
+    return $retval
+}
+
+restart() {
+    configtest_q || configtest || return 6
+    stop
+    start
+}
+
+case "$1" in
+    start)
+        $1
+        ;;
+    stop)
+        $1
+        ;;
+    restart)
+        restart
+	    ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart}"
+        exit 2
+esac

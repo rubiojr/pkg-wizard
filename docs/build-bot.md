@@ -42,13 +42,23 @@ Starting a new build-bot for the first time:
 
 3. Change user ID to buildbot and change to the /home/buildbot directory
 
-   `$ su buildbot && cd`
+   `$ su buildbot`
+
+   `$ cd /home/buildbot`
 
 4. Start the build-bot
 
-   `$ pkgwiz build-bot --mock-profile frameos-6`
+   `$ pkgwiz build-bot -m epel-5-x86_64 --daemonize --log-format web`
 
-This will start a build-bot listening in port 4567/tcp, using the mock profile from /etc/mock/frameos-6.cfg. From now on, the build-bot is ready to accept packages.
+   This will start a build-bot listening in port 4567/tcp, using the mock profile from /etc/mock/epel-5-x86_64.cfg. From now on, the build-bot is ready to accept packages. Make sure the build-bot server firewall permits incoming traffic to port 4567/tcp.
+   The build-bot server logs to build-bot.log file in the current working directory.
+
+5. OPTIONAL (RHEL/Fedora only): enable pkgwiz-buildbot system service
+
+   If you want to start the build-bot automatically every time the system boots, run the following command:
+
+   `$ chkconfig pkgwiz-buildbot on`
+
 
 Have a look at [pkgwiz](pkgwiz.html) [remote-build](remote-build.html) to learn how to send packages to the build-bot.
 
