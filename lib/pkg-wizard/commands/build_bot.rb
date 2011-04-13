@@ -40,10 +40,10 @@ module PKGWizard
     end
 
     def self.run
-      wslogview_dir = 'wslogview'
+      public_dir = 'public'
       if not defined? @@proc
         puts '* starting NODE.JS...'
-        @@proc = IO.popen("node wslogview/server.js #{@@logfile}")
+        @@proc = IO.popen("node public/server.js #{@@logfile}")
       end
     end
   end
@@ -93,6 +93,10 @@ module PKGWizard
         (Dir["failed/job_*"] + Dir["success/job_*"]).find { |j| File.basename(j) == name }
       end
 
+      get '/' do
+        File.read(File.join(File.dirname(__FILE__), '/../../../resources/public/build-bot/index.html'))
+      end
+
       post '/tag/:name' do
         name = params[:name]
         if name.nil? or name.strip.chomp.empty?
@@ -115,10 +119,13 @@ module PKGWizard
       end
       
       post '/job/clean' do
-        dir = params[:dir] || 'output'
+        dir = params[:dir]
         if dir == 'output'
           FileUtils.touch 'output/.clean'
         elsif dir == 'failed'
+          FileUtils.touch 'failed/.clean'
+        elsif dir.nil?
+          FileUtils.touch 'output/.clean'
           FileUtils.touch 'failed/.clean'
         else
           $stderr.puts "WARNING: job/clean Unknown dir #{dir}. Ignoring."
@@ -143,7 +150,7 @@ module PKGWizard
         if NodeRunner.available?
           NodeRunner.run
           sleep 0.5
-          index = 'wslogview/index.html'
+          index = 'public/index.html'
           File.read index
         else
           'node.js is not installed: Real time logs disabled :('
@@ -268,17 +275,18 @@ module PKGWizard
       cli.parse_options
 
       ## Node.JS log server stuff
-      wslogview_dir = File.join(File.dirname(__FILE__), '/../../../resources/wslogview/')
+      public_dir = File.join(File.dirname(__FILE__), '/../../../resources/public/')
       node_port = cli.config[:log_server_port]
-      if not File.exist?('wslogview')
-        FileUtils.cp_r wslogview_dir, 'wslogview'
+      if File.exist?('public')
+        FileUtils.rm_rf 'public'
       end
-      html = File.read('wslogview/index.html.tmpl').gsub('@@NODEJSPORT@@', node_port)
-      serverjs = File.read('wslogview/server.js.tmpl').gsub('@@NODEJSPORT@@', node_port)
-      File.open 'wslogview/index.html', 'w' do |f|
+      FileUtils.cp_r public_dir, 'public'
+      html = File.read('public/index.html.tmpl').gsub('@@NODEJSPORT@@', node_port)
+      serverjs = File.read('public/server.js.tmpl').gsub('@@NODEJSPORT@@', node_port)
+      File.open 'public/index.html', 'w' do |f|
         f.puts html
       end
-      File.open 'wslogview/server.js', 'w' do |f|
+      File.open 'public/server.js', 'w' do |f|
         f.puts serverjs 
       end
 
@@ -471,7 +479,7 @@ module PKGWizard
         end
       end
       Webapp.set :port => cli.config[:port]
-      Webapp.set :public => 'wslogview'
+      Webapp.set :public => 'public'
       Webapp.run!
       at_exit do 
         NodeRunner.kill

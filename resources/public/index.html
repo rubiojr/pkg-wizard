@@ -1,0 +1,44 @@
+<html>
+	<head>
+		<title>PKG Wizard Build Bot</title>
+	</head>
+<body>
+<link href='/screen.css' rel='stylesheet' type='text/css' /> 
+
+<script src='/jquery.js'></script> 
+
+<script>
+
+var conn;
+var connect = function() {
+  if (window["WebSocket"]) {
+    conn = new WebSocket('ws://' + location.hostname + ':60001');
+    conn.onmessage = function(evt) {
+     data = $.parseJSON(evt.data);
+
+      if(data.buildbot != null) {
+        $('#buildbot').append("<div class=logline>" + unescape(data.buildbot) + "</div>");
+      }
+      x = 0;  //horizontal coord
+      y = document.height; //vertical coord
+      window.scroll(x,y);
+
+    };
+  }
+};
+
+window.onload = connect;
+
+</script>
+
+<div class='header'>
+	<div>
+	<img src="images/pkg-wizard-logo-small.png"/>
+</div>
+	<div> logs </div>
+</div>
+<div id="buildbot" class="log">
+</div>
+</body>
+
+</html>
