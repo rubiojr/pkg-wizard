@@ -47,6 +47,11 @@ module PKGWizard
       :description => 'Directory for downloaded files to be put',
       :default => '/tmp'
     
+    option :mock_profile,
+      :short => '-m ',
+      :long => '--mock-profile PROFILE',
+      :description => 'Mock profile to use for building'
+    
     def self.perform
       cli = RemoteBuild.new
       cli.banner = "\nUsage: pkgwiz remote-build (options)\n\n"
@@ -124,9 +129,12 @@ module PKGWizard
         count = 0
         $stdout.sync = true
         line_reset = "\r\e[0K" 
+        params = {}
+        params[:mock_profile] = cli.config[:mock_profile] if cli.config[:mock_profile]
+        params[:pkg] = fo
         res = StreamingUploader.post(
           bbot_url + '/build/',
-          { 'pkg' => fo }
+          params
         ) do |size|
           count += size
           per = (100*count)/fsize 

@@ -13,6 +13,7 @@ require 'term/ansicolor'
 require 'pp'
 require 'yaml'
 require 'daemons'
+require 'singleton'
 
 module FakeColor
   def red; "<span style='color: red'>#{self}</span>"; end
@@ -48,6 +49,15 @@ module PKGWizard
     end
   end
 
+  class BuildBotConfig
+    include Singleton
+    attr_accessor :mock_profile
+
+    def initialize
+      @mock_profile = "epel-5-x86_64"
+    end
+  end
+
   class BuildBot < Command
 
     registry << { :name => 'build-bot', :klass => self }
@@ -63,7 +73,8 @@ module PKGWizard
 
     option :mock_profile,
       :short =>  '-m PROF',
-      :long => '--mock-profile PROF'
+      :long => '--mock-profile PROF',
+      :description => 'Default Mock Profile'
     
     option :port,
       :short =>  '-p PORT',
@@ -99,12 +110,17 @@ module PKGWizard
 
       post '/tag/:name' do
         name = params[:name]
+        profile = params[:mock_profile]
+        meta = {
+          :name => name,
+          :mock_profile => profile
+        }
         if name.nil? or name.strip.chomp.empty?
           status 400
           'Invalid tag'
         else
           File.open('tags/.tag', 'w') do |f|
-            f.puts name
+            f.puts meta.to_yaml 
           end
           "Tagging #{name}..."
         end
@@ -134,6 +150,11 @@ module PKGWizard
 
       post '/build/' do
         pkg = params[:pkg]
+        build_profile = params[:mock_profile] || BuildBotConfig.instance.mock_profile
+        metadata = {
+          :mock_profile => build_profile
+        }
+
         if pkg.nil?
           Logger.instance.error '400: Invalid arguments. Needs pkg in post request'
           status 400
@@ -142,6 +163,9 @@ module PKGWizard
           incoming_file = "incoming/#{pkg[:filename]}"
           puts "* incoming file".ljust(40) + "#{pkg[:filename]}"
           FileUtils.cp pkg[:tempfile].path, incoming_file
+          File.open("incoming/#{pkg[:filename]}.metadata", 'w') do |f|
+            f.puts metadata.to_yaml
+          end
         end
       end
 
@@ -314,6 +338,7 @@ module PKGWizard
       end
 
       mock_profile = cli.config[:mock_profile]
+      BuildBotConfig.instance.mock_profile = mock_profile
       if not mock_profile
         $stderr.puts 'Invalid mock profile.'
         $stderr.puts cli.opt_parser.help
@@ -367,20 +392,40 @@ module PKGWizard
       tag_sched = Rufus::Scheduler.start_new
       tag_sched.every '2s', :blocking => true do
         if File.exist?('tags/.tag')
-          tag = File.read('tags/.tag').strip.chomp
-          tag_dir = "tags/#{tag}"
-          Dir.mkdir(tag_dir) if not File.exist?(tag_dir)
-          Dir["output/*/result/*.rpm"].sort.each do |rpm|
-            FileUtils.cp rpm, tag_dir 
-          end
-          puts "* create tag #{tag} repo START"
-          output = `createrepo -q -o #{tag_dir} --update -d #{tag_dir} 2>&1`
-          if $? != 0
-            puts "create tag #{tag} operation failed: #{output}".red.bold
+          tag_meta = YAML.load_file 'tags/.tag' rescue nil
+          if tag_meta
+            tag_dir = "tags/#{tag_meta[:name]}"
+            tag_mock_profile = tag_meta[:mock_profile]
+
+            tag_pkgs = []
+            Dir["output/*/result/*.rpm"].sort.each do |rpm|
+              p = YAML.load_file(File.join(File.dirname(rpm), '/../meta.yml'))[:mock_profile]
+              if p == tag_mock_profile or tag_mock_profile.nil?
+                tag_pkgs << rpm
+              end
+            end
+                
+            if not tag_pkgs.empty?
+              puts "* create tag #{tag_meta[:name]} repo START"
+              Dir.mkdir(tag_dir) if not File.exist?(tag_dir)
+              tag_pkgs.each do |rpm|
+                FileUtils.cp rpm, tag_dir 
+              end
+              output = `createrepo -q -o #{tag_dir} --update -d #{tag_dir} 2>&1`
+              if $? != 0
+                puts "create tag #{tag_meta[:name]} operation failed: #{output}".red.bold
+              else
+                puts "* create tag #{tag_meta[:name]} DONE"
+              end
+            else
+              puts "* WARNING: trying to create a tag with no packages."
+            end
+            FileUtils.rm 'tags/.tag'
           else
-            puts "* create tag #{tag} DONE"
+            puts "* ERROR: error creating tag, could not parse tag metadata."
           end
-          FileUtils.rm 'tags/.tag'
+        else
+          
         end
       end
       
@@ -429,6 +474,7 @@ module PKGWizard
       scheduler = Rufus::Scheduler.start_new
       scheduler.every '2s', :blocking => true do
         meta[:start_time] = Time.now
+        meta[:mock_profile] = mock_profile
         queue = Dir['incoming/*.src.rpm'].sort_by {|filename| File.mtime(filename) }
         if not queue.empty?
           # Clean workspace first
@@ -436,7 +482,22 @@ module PKGWizard
             FileUtils.rm_rf j
           end
           job_dir = "workspace/job_#{Time.now.strftime '%Y%m%d_%H%M%S'}"
+          imeta_file = "#{queue.first}.metadata"
           qfile = File.join(job_dir, File.basename(queue.first))
+          if File.exist?(imeta_file)
+            begin
+            imeta = YAML.load_file(imeta_file)
+            if imeta
+              m = YAML.load_file(imeta_file)
+              meta[:mock_profile] = m[:mock_profile] || BuildBotConfig.mock_profile
+            end
+            rescue Exception
+              puts "* ERROR: parsing #{queue.first} metadata"
+            end
+            FileUtils.rm imeta_file 
+          else
+            puts "* WARNING: #{queue.first} does not have metadata!"
+          end
           job_time = Time.now.strftime '%Y%m%d_%H%M%S'
           result_dir = job_dir + '/result'
           FileUtils.mkdir_p result_dir
@@ -446,18 +507,18 @@ module PKGWizard
             f.puts meta.to_yaml
           end
           FileUtils.mv queue.first, qfile
-          puts "Building pkg [job_#{job_time}]".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
+          puts "Building pkg [job_#{job_time}][#{meta[:mock_profile]}] ".ljust(40).yellow.bold +  "#{File.basename(qfile)}"
 
           rdir = nil
           begin
-            PKGWizard::Mock.srpm :srpm => qfile, :profile => mock_profile, :resultdir => result_dir
+            PKGWizard::Mock.srpm :srpm => qfile, :profile => meta[:mock_profile], :resultdir => result_dir
             meta[:status] = 'ok'
             meta[:end_time] = Time.now
             meta[:build_time] = meta[:end_time] - meta[:start_time]
-            puts "Build OK [job_#{job_time}] #{meta[:build_time].to_i}s ".ljust(40).green.bold + "#{File.basename(qfile)}"
+            puts "Build OK [job_#{job_time}][#{meta[:mock_profile]}] ".ljust(40).green.bold + "#{File.basename(qfile)}"
           rescue Exception => e
             meta[:status] = 'error'
-            puts "Build FAILED [job_#{job_time}]".ljust(40).red.bold + "#{File.basename(qfile)}"
+            puts "Build FAILED [job_#{job_time}][#{meta[:mock_profile]}]".ljust(40).red.bold + "#{File.basename(qfile)}"
             File.open(job_dir + '/buildbot.log', 'w') do |f|
               f.puts "#{e.backtrace.join("\n")}"
               f.puts "#{e.message}"
