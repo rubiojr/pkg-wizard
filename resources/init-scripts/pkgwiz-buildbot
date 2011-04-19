@@ -14,11 +14,12 @@
 # Source networking configuration.
 . /etc/sysconfig/network
 
+MOCK_PROFILE='epel-5-x86_64'
+
 if [ -f /etc/sysconfig/pkgwiz-buildbot ];then 
 	. /etc/sysconfig/pkgwiz-buildbot
 else
-	echo "Config file not found in /etc/sysconfig/pkgwiz-buildbot. Aborting."
-	exit 1
+	echo "WARNING: /etc/sysconfig/pkgwiz-buildbot config missing"
 fi
 
 # Check that networking is up.

@@ -1,4 +1,6 @@
 require 'fileutils'
+require 'pkg-wizard/streaming_downloader'
+require 'uri'
 
 module PKGWizard
   class NoSpecFound < Exception; end
@@ -8,19 +10,67 @@ module PKGWizard
   end
 
   class SpecFile
-    attr_accessor :name, :release, :version
+    attr_accessor :spec, :name, :release, :version, :sources
 
     def self.parse(file)
       f = File.read(file)
       spec = SpecFile.new
+      spec.spec = f
       spec.name = f.match(/Name:(.*?)$/)[1].strip.chomp
       spec.version = f.match(/Version:(.*?)$/)[1].strip.chomp
       spec.release = f.match(/Release:(.*?)$/)[1].strip.chomp.gsub(/%\{\?.*\}/, '')
+      spec.sources = []
+      f.each_line do |line|
+        if line =~ /^\s*Source\d*:(.*)$/i
+          spec.sources << $1.strip.chomp
+        end
+      end
       spec
     end
 
+    def download_source_files(defines = [], dest_dir = '.')
+      define = ''
+      if defines.is_a? Array and defines.size >= 1
+        define = defines[0]
+      elsif defines.is_a? String
+        define = defines
+      else
+        define = nil
+      end
+      if define
+        if define !~ /\w\s+\w/
+          raise ArgumentError.new "Invalid --define syntax. Use 'macro_name macro_value'"
+        else
+          new_sources = []
+          def_tokens = define.split
+          sources.each do |s|
+            new_sources << s.gsub(/%\{\??#{def_tokens[0]}\}/, def_tokens[1])
+          end
+        end
+      else
+        new_sources = sources
+      end
+      new_sources.each do |s|
+        next if s !~ /http:\/\//
+        yield s if block_given?
+        download_from_url s, dest_dir
+      end
+    end
+    
     def pkgname
       "#{name}-#{version}-#{release}"
+    end
+    
+    private
+    def download_from_url(url, tmpdir = '.')
+      uri = URI.parse(url)
+      remote_pkg = uri.path.split('/').last
+      d = StreamingDownloader.new
+      f = "#{tmpdir}/#{remote_pkg}"
+      tmpfile = File.new(f, 'w')
+      d.download!(url, tmpfile)
+      tmpfile.close
+      f
     end
 
   end

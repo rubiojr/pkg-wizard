@@ -1,3 +1,7 @@
+require 'net/http'
+require 'openssl'
+require 'uri'
+
 module PKGWizard
 
   #
@@ -54,9 +58,10 @@ module PKGWizard
             destination_file.write(segment)
           end
         end
-    end
-    rescue SocketError
-      raise Errors::DownloaderHTTPSocketError.new
-    end
+      end
+      puts
+      rescue SocketError
+        raise Errors::DownloaderHTTPSocketError.new
+      end
   end
 end
