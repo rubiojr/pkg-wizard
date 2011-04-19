@@ -16,19 +16,14 @@
 
 MOCK_PROFILE='epel-5-x86_64'
 
-if [ -f /etc/sysconfig/pkgwiz-buildbot ];then 
-	. /etc/sysconfig/pkgwiz-buildbot
+if [ -f /etc/sysconfig/pkg-wizard ];then 
+	. /etc/sysconfig/pkg-wizard
 else
-	echo "WARNING: /etc/sysconfig/pkgwiz-buildbot config missing"
+	echo "WARNING: /etc/sysconfig/pkg-wizard config missing"
 fi
 
 # Check that networking is up.
 [ "$NETWORKING" = "no" ] && exit 0
-
-if [ -z "$MOCK_PROFILE" ]; then
-	echo "Mock profile not defined in /etc/sysconfig/pkgwiz-buildbot. Aborting."
-	exit 1
-fi
 
 pkgwiz="/usr/bin/pkgwiz"
 workingdir=/home/buildbot
