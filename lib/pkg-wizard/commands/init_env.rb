@@ -30,7 +30,7 @@ module PKGWizard
       end
       if File.exist?('/etc/redhat-release')
         puts '* Installing RHEL/Fedora requirements... '
-        rhel_ver = File.readlines('/etc/redhat-release').first.match(/release\s+(\d)\./)[1] rescue nil
+        rhel_ver = File.readlines('/etc/redhat-release').first.match(/release\s+(\d+)/)[1] rescue nil
         if not rhel_ver
           $stderr.puts "Unsupported RHEL/Fedora distribution"
           exit 1
