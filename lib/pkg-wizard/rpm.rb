@@ -7,25 +7,127 @@ module PKGWizard
   class RPMBuildError < Exception; end
 
   class RPM
+
+    def initialize(pkg)
+      @pkg = pkg.strip.chomp
+      raise ArgumentError.new("Invalid package.") if pkg !~ /.*\.rpm$/
+      raise ArgumentError.new("Invalid package.") if not File.exist?(pkg)
+    end
+
+    def source_package_name
+      info = `rpm -qi -qp #{@pkg} 2>/dev/null`.lines
+        info.find do |s|
+        s =~ /^Source RPM\s*:(.*)$/
+      end
+      $1.strip.chomp
+    end
+
   end
 
   class SpecFile
-    attr_accessor :spec, :name, :release, :version, :sources
+    attr_accessor :spec
 
     def self.parse(file)
-      f = File.read(file)
+      f = ''
+      if File.exist?(file)
+        f = File.read(file)
+      else
+        f = file
+      end
       spec = SpecFile.new
       spec.spec = f
-      spec.name = f.match(/Name:(.*?)$/)[1].strip.chomp
-      spec.version = f.match(/Version:(.*?)$/)[1].strip.chomp
-      spec.release = f.match(/Release:(.*?)$/)[1].strip.chomp.gsub(/%\{\?.*\}/, '')
-      spec.sources = []
-      f.each_line do |line|
-        if line =~ /^\s*Source\d*:(.*)$/i
-          spec.sources << $1.strip.chomp
+      spec
+    end
+
+    def files
+      buf = []
+      in_files = false
+      @spec.each_line do |l|
+        if l =~ /^\s*%files/
+          in_files = true
+          next
+        end
+        if l =~ /^\s*%(changelog|pre|pro|prep|install|clean|build|define)/ and in_files
+          break
+        end
+        if in_files
+          buf << l.strip.chomp if not l.strip.chomp.empty?
         end
       end
-      spec
+      buf
+    end
+
+    def release
+      @spec.match(/Release:(.*?)$/i)[1].strip.chomp.gsub(/%\{\?.*\}/, '') rescue nil
+    end
+
+    def name
+      @spec.match(/Name:(.*?)$/i)[1].strip.chomp rescue nil
+    end
+
+    def version
+      @spec.match(/Version:(.*?)$/i)[1].strip.chomp rescue nil
+    end
+
+    def sources
+      s = []
+      @spec.each_line do |line|
+        if line =~ /^\s*Source\d*:(.*)$/i
+          s << $1.strip.chomp
+        end
+      end
+      s
+    end
+
+    def build_requires
+      build_requires = []
+      @spec.each_line do |l|
+        if l =~ /^\s*buildrequires:(.*)$/i
+          build_requires = $1.split
+          build_requires.reject! { |i| i !~ /^[a-zA-Z0-9]/ }
+        end
+      end
+      build_requires
+    end
+
+    def requires
+      requires = []
+      @spec.each_line do |l|
+        if l =~ /^\s*requires:(.*)$/i
+          requires = $1.split
+          requires.reject! { |i| i !~ /^[a-zA-Z0-9]/ }
+        end
+      end
+      requires
+    end
+
+    def changelog
+      buf = ""
+      in_changelog = false
+      @spec.each_line do |l|
+        if l =~ /%changelog/
+          in_changelog = true
+          next
+        end
+        if in_changelog
+          buf += l
+        end
+      end
+      return buf
+    end
+
+    def changelog_entries
+      entries = []
+      cursor = -1
+      changelog.each_line do |l|
+        if l =~ /^\*/
+          cursor += 1
+          entries[cursor] = l
+        else
+          entries[cursor] += l if not l.strip.chomp.empty?
+        end
+      end
+      entries
     end
 
     def download_source_files(defines = [], dest_dir = '.')
