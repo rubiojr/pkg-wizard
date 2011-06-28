@@ -47,7 +47,7 @@ module PKGWizard
           in_files = true
           next
         end
-        if l =~ /^\s*%(changelog|pre|pro|prep|install|clean|build|define)/ and in_files
+        if l =~ /^\s*%(changelog|pre|pro|prep|preun|postun|post|install|clean|build|define)/ and in_files
           break
         end
         if in_files
