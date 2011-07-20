@@ -16,8 +16,8 @@ module PKGWizard
 
     def source_package_name
       info = `rpm -qi -qp #{@pkg} 2>/dev/null`.lines
-        info.find do |s|
-        s =~ /^Source RPM\s*:(.*)$/
+      info.find do |s|
+        s =~ /Source RPM\s*:(.*)$/
       end
       $1.strip.chomp
     end
