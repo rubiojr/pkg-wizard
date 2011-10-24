@@ -21,7 +21,6 @@ Jeweler::Tasks.new do |gem|
   gem.description = %Q{Tools to manage,create and build distribution packages}
   gem.email = "rubiojr@frameos.org"
   gem.authors = ["Sergio Rubio"]
-  gem.add_runtime_dependency 'SystemTimer'
   gem.add_runtime_dependency 'resque'
   gem.add_runtime_dependency 'git'
   gem.add_runtime_dependency 'sinatra'
